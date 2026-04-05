@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+scheduler-backend/.env
+scheduler-backend/__pycache__
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
