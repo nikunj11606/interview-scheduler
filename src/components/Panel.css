@@ -20,20 +20,63 @@
 }
 
 .panel-header-title {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
+  letter-spacing: 0.12em;
+  color: #a1b7d1;
 }
 
 .panel-header-count {
   font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  color: #ffffff;
   background: var(--border-subtle);
   padding: 2px 7px;
-  border-radius: 20px;
+  border-radius: 30px;
+  border: 1.5px solid #7c4dff;
+  box-shadow: 0 0 8px rgba(124, 77, 255, 0.3);
+}
+
+.search-container {
+  padding: 0 16px 12px;
+}
+
+.search-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 8px 12px;
+  transition: all 0.3s ease;
+}
+
+.search-wrapper:focus-within {
+  border-color: #4facfe;
+  background: rgba(79, 172, 254, 0.05);
+  box-shadow: 0 0 12px rgba(79, 172, 254, 0.2);
+}
+
+.search-icon {
+  width: 14px;
+  height: 14px;
+  color: #8b949e;
+}
+
+.search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #ffffff;
+  font-size: 13px;
+}
+
+.search-input::placeholder {
+  color: #a4b2c4;
 }
 
 .panel-list {
@@ -42,7 +85,7 @@
   padding: 10px 8px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 
 .person-card {
@@ -85,6 +128,7 @@
   border-left: 2px solid var(--accent-purple);
 }
 
+/* --- CARD CONTENT --- */
 .card-top {
   display: flex;
   align-items: center;
@@ -104,28 +148,32 @@
   margin-top: 2px;
 }
 
-.status-dot {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  color: var(--text-secondary);
-  white-space: nowrap;
+.status-pill {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 8px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
-.status-dot::before {
-  content: '';
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
+.status-pill.pending {
+  background: rgba(255, 171, 64, 0.1);
+  color: #ffab40;
+  border: 1px solid rgba(255, 171, 64, 0.2);
 }
 
+.status-pill.scheduled {
+  background: rgba(0, 230, 118, 0.1);
+  color: #E0E6ED;
+  border: 1px solid rgba(0, 230, 118, 0.2);
+}
 
-.status-dot.scheduled::before { background: var(--accent-green); }
-.status-dot.pending::before   { background: var(--text-muted); }
-.status-dot.available::before { background: var(--accent-green); }
-.status-dot.busy::before      { background: var(--accent-purple); }
+.status-pill.available {
+  background: rgba(0, 230, 118, 0.1);
+  color: #00e676;
+  border: 1px solid rgba(0, 230, 118, 0.2);
+}
 
 .detail-box {
   margin-top: 10px;

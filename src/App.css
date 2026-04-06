@@ -88,16 +88,18 @@
 
 .stat-value {
   font-family: var(--font-mono);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 18px;
+  font-weight: 800;
   color: var(--text-primary);
+  font-style: bold;
 }
 
 .stat-label {
   font-size: 10px;
-  color: var(--text-muted);
+  color: #cbb1f7;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  font-style: bold;
 }
 
 .stat-divider {

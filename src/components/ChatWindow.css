@@ -17,11 +17,11 @@
 }
 
 .chat-header-title {
-  font-size: 11px;
+  font-size: 15px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--text-muted);
+  color: #a6afd5;
 }
 
 .chat-online {
@@ -92,7 +92,7 @@
 
 .message-label {
   font-size: 11px;
-  color: var(--text-muted);
+  color: #9da6d8;
   margin-bottom: 4px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
