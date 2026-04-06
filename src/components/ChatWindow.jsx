@@ -6,7 +6,7 @@ function ChatWindow() {
         {
             id: 1,
             role: 'bot',
-            text: 'Hello! I am your AI interview scheduler. Try saying something like "Schedule interview of Nikunj at 5 PM tomorrow"'
+            text: 'Hello! I am your AI interview scheduler.'
         }
     ])
     const [inputText, setInputText] = useState('')
