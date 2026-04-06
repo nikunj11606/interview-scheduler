@@ -1,0 +1,55 @@
+{
+  "candidates": [
+    {
+      "id": 1,
+      "name": "Nikunj Patel",
+      "role": "Frontend Developer",
+      "email": "nikunj@example.com",
+      "status": "pending"
+    },
+    {
+      "id": 2,
+      "name": "Priya Shah",
+      "role": "ML Engineer",
+      "email": "priya@example.com",
+      "status": "pending"
+    },
+    {
+      "id": 3,
+      "name": "Arjun Verma",
+      "role": "Backend Developer",
+      "email": "arjun@example.com",
+      "status": "pending"
+    },
+    {
+      "id": 4,
+      "name": "Kavya Nair",
+      "role": "UI Designer",
+      "email": "kavya@example.com",
+      "status": "pending"
+    }
+  ],
+  "interviewers": [
+    {
+      "id": 1,
+      "name": "Rahul Mehta",
+      "department": "Engineering",
+      "email": "rahul@example.com",
+      "available": true
+    },
+    {
+      "id": 2,
+      "name": "Sneha Joshi",
+      "department": "Data Science",
+      "email": "sneha@example.com",
+      "available": true
+    },
+    {
+      "id": 3,
+      "name": "Amit Sharma",
+      "department": "Design",
+      "email": "amit@example.com",
+      "available": true
+    }
+  ]
+}
