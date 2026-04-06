@@ -165,7 +165,7 @@
 
 .status-pill.scheduled {
   background: rgba(0, 230, 118, 0.1);
-  color: #E0E6ED;
+  color:#00E5FF;
   border: 1px solid rgba(0, 230, 118, 0.2);
 }
 
