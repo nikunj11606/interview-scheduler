@@ -2,12 +2,10 @@
   "candidates": [
     {
       "id": 1,
-      "name": "Nikunj Patel",
+      "name": "Nikunj Sankaliya",
       "role": "Frontend Developer",
       "email": "nikunj@example.com",
-      "status": "scheduled",
-      "interviewTime": "July 5, 2026 at 5:00 PM",
-      "interviewer": "Amit Sharma"
+      "status": "pending"
     },
     {
       "id": 2,
@@ -37,27 +35,21 @@
       "name": "Rahul Mehta",
       "department": "Engineering",
       "email": "rahul@example.com",
-      "available": false,
-      "candidate": "Nikunj Patel",
-      "time": "July 5, 2026 at 5:00 PM"
+      "available": true
     },
     {
       "id": 2,
       "name": "Sneha Joshi",
       "department": "Data Science",
       "email": "sneha@example.com",
-      "available": false,
-      "candidate": "Nikunj Patel",
-      "time": "July 5, 2026 at 5:00 PM"
+      "available": true
     },
     {
       "id": 3,
       "name": "Amit Sharma",
       "department": "Design",
       "email": "amit@example.com",
-      "available": false,
-      "candidate": "Nikunj Patel",
-      "time": "July 5, 2026 at 5:00 PM"
+      "available": true
     }
   ]
 }

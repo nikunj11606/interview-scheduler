@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import './ChatWindow.css'
 
-function ChatWindow() {
+function ChatWindow({ setCandidates, setInterviewers }) {
     const [messages, setMessages] = useState([
         {
             id: 1,
@@ -43,23 +43,26 @@ function ChatWindow() {
             const updatedData = await fetch('http://127.0.0.1:8000/data')
             const freshData = await updatedData.json()
 
-            // Update UI state (you will pass setters later)
-            window.updateCandidates?.(freshData.candidates)
-            window.updateInterviewers?.(freshData.interviewers)
+            // Update UI state using passed props
+            setCandidates(freshData.candidates)
+            setInterviewers(freshData.interviewers)
 
+            // We first show the main reply from the bot
+            let botText = data.scheduled ? `✅ ${data.reply}` : `❌ ${data.reply}`;
+            // If the interview was successfully scheduled, we add the details
+            if (data.scheduled) {
+                botText += `
+👤 Candidate: ${data.data?.candidate?.name}
+🧑‍💼 Interviewer: ${data.data?.interviewer?.name}
+📧 Candidate Email: ${data.data?.candidate_email}
+📧 Interviewer Email: ${data.data?.interviewer_email}
+🗓️ Interview Time: ${data.data?.candidate?.interviewTime}`;
+            }
             const botReply = {
                 id: messages.length + 2,
                 role: 'bot',
-                text: `
-✅ ${data.reply}
-
-👤 Candidate: ${data.data?.candidate?.name}
-🧑‍💼 Interviewer: ${data.data?.interviewer?.name}
-
-📧 Candidate Email: ${data.data?.candidate_email}
-📧 Interviewer Email: ${data.data?.interviewer_email}
-`
-            }
+                text: botText
+            };
 
             setMessages(prev => [...prev, botReply])
 

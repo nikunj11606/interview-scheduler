@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import CandidatePanel from './components/CandidatePanel'
 import InterviewerPanel from './components/InterviewerPanel'
 import ChatWindow from './components/ChatWindow'
@@ -9,8 +9,15 @@ function App() {
   const [candidateList, setCandidateList] = useState(candidates)
   const [interviewerList, setInterviewerList] = useState(interviewers)
 
-  window.updateCandidates = setCandidateList
-  window.updateInterviewers = setInterviewerList
+  // Fetch real data from the backend on app load
+  useEffect(() => {
+    fetch('http://127.0.0.1:8000/data')
+      .then(res => res.json())
+      .then(data => {
+        setCandidateList(data.candidates);
+        setInterviewerList(data.interviewers);
+      });
+  }, []);
 
   const scheduledCount = candidateList.filter(c => c.status === 'scheduled').length
   const availableCount = interviewerList.filter(i => i.available).length
@@ -49,7 +56,10 @@ function App() {
 
       <div className="panels">
         <CandidatePanel candidates={candidateList} />
-        <ChatWindow />
+        <ChatWindow 
+          setCandidates={setCandidateList} 
+          setInterviewers={setInterviewerList} 
+        />
         <InterviewerPanel interviewers={interviewerList} />
       </div>
     </div>
