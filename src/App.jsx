@@ -9,6 +9,9 @@ function App() {
   const [candidateList, setCandidateList] = useState(candidates)
   const [interviewerList, setInterviewerList] = useState(interviewers)
 
+  window.updateCandidates = setCandidateList
+  window.updateInterviewers = setInterviewerList
+
   const scheduledCount = candidateList.filter(c => c.status === 'scheduled').length
   const availableCount = interviewerList.filter(i => i.available).length
 

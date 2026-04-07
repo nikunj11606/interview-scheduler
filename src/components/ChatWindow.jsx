@@ -16,7 +16,7 @@ function ChatWindow() {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
     }, [messages])
 
-    function handleSend() {
+    async function handleSend() {
         if (inputText.trim() === '') return
 
         const userMessage = {
@@ -25,14 +25,52 @@ function ChatWindow() {
             text: inputText
         }
 
-        const botReply = {
-            id: messages.length + 2,
-            role: 'bot',
-            text: 'Got it! Processing your request...'
-        }
-
-        setMessages([...messages, userMessage, botReply])
+        setMessages(prev => [...prev, userMessage])
         setInputText('')
+
+        try {
+            const response = await fetch('http://127.0.0.1:8000/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message: inputText })
+            })
+
+            const data = await response.json()
+
+            // Fetch updated data from backend
+            const updatedData = await fetch('http://127.0.0.1:8000/data')
+            const freshData = await updatedData.json()
+
+            // Update UI state (you will pass setters later)
+            window.updateCandidates?.(freshData.candidates)
+            window.updateInterviewers?.(freshData.interviewers)
+
+            const botReply = {
+                id: messages.length + 2,
+                role: 'bot',
+                text: `
+✅ ${data.reply}
+
+👤 Candidate: ${data.data?.candidate?.name}
+🧑‍💼 Interviewer: ${data.data?.interviewer?.name}
+
+📧 Candidate Email: ${data.data?.candidate_email}
+📧 Interviewer Email: ${data.data?.interviewer_email}
+`
+            }
+
+            setMessages(prev => [...prev, botReply])
+
+        } catch (error) {
+            const errorMessage = {
+                id: messages.length + 2,
+                role: 'bot',
+                text: 'Something went wrong. Is the backend running?'
+            }
+            setMessages(prev => [...prev, errorMessage])
+        }
     }
 
     function handleKeyDown(e) {

@@ -11,8 +11,7 @@ def send_confirmation(
     candidate_email: str,
     interviewer_name: str,
     interviewer_email: str,
-    interview_time: str,
-    interview_date: str
+    interview_datetime: str
 ) -> bool:
     try:
         EMAIL_USER = os.getenv("EMAIL_USER")
@@ -24,7 +23,7 @@ def send_confirmation(
             print(f"To Candidate  : {candidate_email}")
             print(f"To Interviewer: {interviewer_email}")
             print(f"Details       : {candidate_name} + {interviewer_name}")
-            print(f"Time          : {interview_date} at {interview_time}")
+            print(f"Time          : {interview_datetime}")
             print("── Email would be sent here in production ──")
             return True
 
@@ -37,12 +36,13 @@ def send_confirmation(
             body = f"""
 Hi {to_name},
 
-Your interview has been confirmed.
+Your interview has been confirmed. Here are the details:
 
 Candidate   : {candidate_name}
 Interviewer : {interviewer_name}
-Date        : {interview_date}
-Time        : {interview_time}
+Datetime        : {interview_datetime}
+
+We look forward to a great interview!
 
 Regards,
 ScheduleAI
