@@ -137,6 +137,8 @@
       "name": "Amit Thakkar",
       "department": "Engineering",
       "email": "kanchi2024.b@gmail.com",
+      "candidate": "Nency Dhankecha",
+      "time": "July 10, 2026 at 3:00 PM",
       "available": false
     },
     {
@@ -144,6 +146,8 @@
       "name": "Demis Hassabis",
       "department": "AI Research",
       "email": "kanchibhatia4@gmail.com",
+      "candidate": "Darshan Gandhi",
+      "time": "July 12, 2026 at 11:00 AM",
       "available": false
     },
     {
@@ -158,7 +162,7 @@
       "name": "Draupadi Murmu",
       "department": "HR",
       "email": "nikunj11606@gmail.com",
-      "available": false
+      "available": true
     },
     {
       "id": 6,

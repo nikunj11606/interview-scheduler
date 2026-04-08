@@ -2,12 +2,11 @@ import { useState, useEffect } from 'react'
 import CandidatePanel from './components/CandidatePanel'
 import InterviewerPanel from './components/InterviewerPanel'
 import ChatWindow from './components/ChatWindow'
-import { candidates, interviewers } from './data/mockData'
 import './App.css'
 
 function App() {
-  const [candidateList, setCandidateList] = useState(candidates)
-  const [interviewerList, setInterviewerList] = useState(interviewers)
+  const [candidateList, setCandidateList] = useState([])
+  const [interviewerList, setInterviewerList] = useState([])
 
   // Fetch real data from the backend on app load
   useEffect(() => {
@@ -56,9 +55,9 @@ function App() {
 
       <div className="panels">
         <CandidatePanel candidates={candidateList} />
-        <ChatWindow 
-          setCandidates={setCandidateList} 
-          setInterviewers={setInterviewerList} 
+        <ChatWindow
+          setCandidates={setCandidateList}
+          setInterviewers={setInterviewerList}
         />
         <InterviewerPanel interviewers={interviewerList} />
       </div>

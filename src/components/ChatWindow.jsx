@@ -77,7 +77,10 @@ function ChatWindow({ setCandidates, setInterviewers }) {
     }
 
     function handleKeyDown(e) {
-        if (e.key === 'Enter') handleSend()
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleSend();
+        }
     }
 
     return (
