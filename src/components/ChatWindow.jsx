@@ -10,23 +10,25 @@ function ChatWindow({ setCandidates, setInterviewers }) {
         }
     ])
     const [inputText, setInputText] = useState('')
+    const [isTyping, setIsTyping] = useState(false) // ✅ added
     const bottomRef = useRef(null)
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }, [messages])
+    }, [messages, isTyping]) // ✅ updated
 
     async function handleSend() {
         if (inputText.trim() === '') return
 
         const userMessage = {
-            id: messages.length + 1,
+            id: Date.now(), // ✅ better id
             role: 'user',
             text: inputText
         }
 
         setMessages(prev => [...prev, userMessage])
         setInputText('')
+        setIsTyping(true) // ✅ start typing
 
         try {
             const response = await fetch('/chat', {
@@ -36,23 +38,21 @@ function ChatWindow({ setCandidates, setInterviewers }) {
                 },
                 body: JSON.stringify({
                     message: inputText,
-                    history: messages.slice(-10) // This sends all previous messages to the backend
+                    history: messages.slice(-10)
                 })
             })
 
             const data = await response.json()
 
-            // Fetch updated data from backend
+            // Fetch updated data
             const updatedData = await fetch('/data')
             const freshData = await updatedData.json()
 
-            // Update UI state using passed props
             setCandidates(freshData.candidates)
             setInterviewers(freshData.interviewers)
 
-            // We first show the main reply from the bot
             let botText = data.reply;
-            // If the interview was successfully scheduled, we add the details
+
             if (data.scheduled) {
                 botText += `
 Candidate: ${data.data?.candidate?.name}
@@ -61,29 +61,32 @@ Candidate Email: ${data.data?.candidate_email}
 Interviewer Email: ${data.data?.interviewer_email}
 Interview Time: ${data.data?.candidate?.interviewTime}`;
             }
+
             const botMessage = {
-                id: messages.length + 2,
+                id: Date.now() + 1,
                 role: 'bot',
                 text: botText,
                 isError: data.is_error
-            };
+            }
 
             setMessages(prev => [...prev, botMessage])
 
         } catch (error) {
             const errorMessage = {
-                id: messages.length + 2,
+                id: Date.now() + 2,
                 role: 'bot',
                 text: 'Something went wrong. Is the backend running?'
             }
             setMessages(prev => [...prev, errorMessage])
+        } finally {
+            setIsTyping(false) // ✅ always stop typing
         }
     }
 
     function handleKeyDown(e) {
         if (e.key === 'Enter') {
-            e.preventDefault();
-            handleSend();
+            e.preventDefault()
+            handleSend()
         }
     }
 
@@ -111,6 +114,19 @@ Interview Time: ${data.data?.candidate?.interviewTime}`;
                         </div>
                     </div>
                 ))}
+
+                {/* ✅ Typing Indicator */}
+                {isTyping && (
+                    <div className="message message-bot">
+                        <span className="message-label">ai agent</span>
+                        <div className="message-bubble typing-indicator">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                )}
+
                 <div ref={bottomRef} />
             </div>
 
