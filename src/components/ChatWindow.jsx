@@ -29,18 +29,21 @@ function ChatWindow({ setCandidates, setInterviewers }) {
         setInputText('')
 
         try {
-            const response = await fetch('http://127.0.0.1:8000/chat', {
+            const response = await fetch('/chat', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ message: inputText })
+                body: JSON.stringify({
+                    message: inputText,
+                    history: messages.slice(-10) // This sends all previous messages to the backend
+                })
             })
 
             const data = await response.json()
 
             // Fetch updated data from backend
-            const updatedData = await fetch('http://127.0.0.1:8000/data')
+            const updatedData = await fetch('/data')
             const freshData = await updatedData.json()
 
             // Update UI state using passed props
@@ -48,23 +51,24 @@ function ChatWindow({ setCandidates, setInterviewers }) {
             setInterviewers(freshData.interviewers)
 
             // We first show the main reply from the bot
-            let botText = data.scheduled ? `✅ ${data.reply}` : `❌ ${data.reply}`;
+            let botText = data.reply;
             // If the interview was successfully scheduled, we add the details
             if (data.scheduled) {
                 botText += `
-👤 Candidate: ${data.data?.candidate?.name}
-🧑‍💼 Interviewer: ${data.data?.interviewer?.name}
-📧 Candidate Email: ${data.data?.candidate_email}
-📧 Interviewer Email: ${data.data?.interviewer_email}
-🗓️ Interview Time: ${data.data?.candidate?.interviewTime}`;
+Candidate: ${data.data?.candidate?.name}
+Interviewer: ${data.data?.interviewer?.name}
+Candidate Email: ${data.data?.candidate_email}
+Interviewer Email: ${data.data?.interviewer_email}
+Interview Time: ${data.data?.candidate?.interviewTime}`;
             }
-            const botReply = {
+            const botMessage = {
                 id: messages.length + 2,
                 role: 'bot',
-                text: botText
+                text: botText,
+                isError: data.is_error
             };
 
-            setMessages(prev => [...prev, botReply])
+            setMessages(prev => [...prev, botMessage])
 
         } catch (error) {
             const errorMessage = {

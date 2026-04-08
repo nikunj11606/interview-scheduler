@@ -87,7 +87,13 @@ function CandidatePanel({ candidates }) {
                                             </div>
                                         </>
                                     ) : (
-                                        <p className="no-data-text">No interview scheduled yet</p>
+                                        <>
+                                            <div className="detail-row">
+                                                <span className="detail-label">Email</span>
+                                                <span className="detail-value">{candidate.email}</span>
+                                            </div>
+                                            <p className="no-data-text" style={{ marginBottom: '8px' }}>No interview scheduled yet</p>
+                                        </>
                                     )}
                                 </div>
                             )}

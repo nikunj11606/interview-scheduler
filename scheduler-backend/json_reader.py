@@ -1,7 +1,7 @@
 import json
 import os
 
-DATA_FILE = "data.json"
+DATA_FILE = os.path.join(os.path.dirname(__file__), "data.json")
 
 def normalize(name: str) -> str:
     return name.strip().lower()

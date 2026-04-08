@@ -59,6 +59,7 @@ function InterviewerPanel({ interviewers }) {
                             <div className="card-top">
                                 <div>
                                     <div className="person-name">{interviewer.name}</div>
+                                    <div className="person-role">{interviewer.department}</div>
                                 </div>
                                 {/* Updated from status-dot to status-pill */}
                                 <span className={`status-pill ${interviewer.available ? 'available' : 'scheduled'}`}>
@@ -84,7 +85,13 @@ function InterviewerPanel({ interviewers }) {
                                             </div>
                                         </>
                                     ) : (
-                                        <p className="no-data-text">No interviews assigned</p>
+                                        <>
+                                            <div className="detail-row">
+                                                <span className="detail-label">Email</span>
+                                                <span className="detail-value">{interviewer.email}</span>
+                                            </div>
+                                            <p className="no-data-text" style={{ marginBottom: '8px' }}>No interviews assigned</p>
+                                        </>
                                     )}
                                 </div>
                             )}

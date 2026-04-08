@@ -16,48 +16,65 @@
     },
     {
       "id": 3,
-      "name": "Kanchi Bhatia",
-      "role": "ML Engineer",
-      "email": "kanchibhatia4@gmail.com",
-      "status": "pending"
-    },
-    {
-      "id": 4,
-      "name": "Drashti Rajgor",
-      "role": "Data Analyst",
-      "email": "nikunjsankaliya716@gmail.com",
-      "status": "pending"
-    },
-    {
-      "id": 5,
-      "name": "Rohit Vastani",
-      "role": "UI Designer",
+      "name": "Nikunj Chavda",
+      "role": "App Developer",
       "email": "nikunj11606@gmail.com",
       "status": "pending"
     },
     {
+      "id": 4,
+      "name": "Kanchi Bhatia",
+      "role": "ML Engineer",
+      "email": "kanchibhatia4@gmail.com",
+      "status": "scheduled",
+      "interviewTime": "April 09, 2026 at 1:00 PM",
+      "interviewer": "Akash Singh"
+    },
+    {
+      "id": 5,
+      "name": "Drashti Rajgor",
+      "role": "Data Analyst",
+      "email": "nikunjsankaliya716@gmail.com",
+      "status": "scheduled",
+      "interviewTime": null,
+      "interviewer": "Draupadi Murmu"
+    },
+    {
       "id": 6,
-      "name": "Anmol Chawla",
-      "role": "Frontend Developer",
-      "email": "kanchi2024.b@gmail.com",
-      "status": "pending"
+      "name": "Rohit Vastani",
+      "role": "UI Designer",
+      "email": "nikunj11606@gmail.com",
+      "status": "scheduled",
+      "interviewTime": "April 09, 2026 at 11:00 AM",
+      "interviewer": "Zalak Jotaniya"
     },
     {
       "id": 7,
-      "name": "Sai Pallavi",
-      "role": "Data Analyst",
-      "email": "kanchibhatia4@gmail.com",
-      "status": "pending"
+      "name": "Anmol Chawla",
+      "role": "Frontend Developer",
+      "email": "kanchi2024.b@gmail.com",
+      "status": "scheduled",
+      "interviewTime": "None",
+      "interviewer": "Ravi Gor"
     },
     {
       "id": 8,
+      "name": "Sai Pallavi",
+      "role": "Data Analyst",
+      "email": "kanchibhatia4@gmail.com",
+      "status": "scheduled",
+      "interviewTime": "April 09, 2026 at 4:00 PM",
+      "interviewer": "Vaibhav Bhatia"
+    },
+    {
+      "id": 9,
       "name": "Fenil Kathiriya",
       "role": "Cloud Engineer",
       "email": "nikunjsankaliya716@gmail.com",
       "status": "pending"
     },
     {
-      "id": 9,
+      "id": 10,
       "name": "Nency Dhankecha",
       "role": "Backend Developer",
       "email": "nikunj11606@gmail.com",
@@ -66,42 +83,42 @@
       "interviewer": "Amit Thakkar"
     },
     {
-      "id": 10,
+      "id": 11,
       "name": "Parth Bhatiya",
       "role": "UI Designer",
       "email": "kanchi2024.b@gmail.com",
       "status": "pending"
     },
     {
-      "id": 11,
+      "id": 12,
       "name": "Mayank Movaliya",
       "role": "DevOps Engineer",
       "email": "kanchibhatia4@gmail.com",
       "status": "pending"
     },
     {
-      "id": 12,
+      "id": 13,
       "name": "Krish Valu",
       "role": "Backend Developer",
       "email": "nikunjsankaliya716@gmail.com",
       "status": "pending"
     },
     {
-      "id": 13,
+      "id": 14,
       "name": "Shreyash Bodar",
       "role": "Frontend Developer",
       "email": "nikunj11606@gmail.com",
       "status": "pending"
     },
     {
-      "id": 14,
+      "id": 15,
       "name": "Astha Nayak",
       "role": "UI Designer",
       "email": "kanchi2024.b@gmail.com",
       "status": "pending"
     },
     {
-      "id": 15,
+      "id": 16,
       "name": "Darshan Gandhi",
       "role": "System Engineer",
       "email": "kanchibhatia4@gmail.com",
@@ -110,14 +127,14 @@
       "interviewer": "Demis Hassabis"
     },
     {
-      "id": 16,
+      "id": 17,
       "name": "Khushi Saidava",
       "role": "QA Engineer",
       "email": "nikunjsankaliya716@gmail.com",
       "status": "pending"
     },
     {
-      "id": 17,
+      "id": 18,
       "name": "Pranidha Shah",
       "role": "Data Scientist",
       "email": "nikunj11606@gmail.com",
@@ -130,7 +147,9 @@
       "name": "Zalak Jotaniya",
       "department": "Data Science",
       "email": "nikunj11606@gmail.com",
-      "available": true
+      "available": false,
+      "candidate": "Rohit Vastani",
+      "time": "April 09, 2026 at 11:00 AM"
     },
     {
       "id": 2,
@@ -155,28 +174,36 @@
       "name": "Akash Singh",
       "department": "Engineering",
       "email": "nikunjsankaliya716@gmail.com",
-      "available": true
+      "available": false,
+      "candidate": "Kanchi Bhatia",
+      "time": "April 09, 2026 at 1:00 PM"
     },
     {
       "id": 5,
       "name": "Draupadi Murmu",
       "department": "HR",
       "email": "nikunj11606@gmail.com",
-      "available": true
+      "available": false,
+      "candidate": "Drashti Rajgor",
+      "time": null
     },
     {
       "id": 6,
       "name": "Vaibhav Bhatia",
       "department": "Design",
       "email": "kanchi2024.b@gmail.com",
-      "available": true
+      "available": false,
+      "candidate": "Sai Pallavi",
+      "time": "April 09, 2026 at 4:00 PM"
     },
     {
       "id": 7,
       "name": "Ravi Gor",
       "department": "Backend",
       "email": "kanchibhatia4@gmail.com",
-      "available": true
+      "available": false,
+      "candidate": "Anmol Chawla",
+      "time": "None"
     }
   ]
 }

@@ -10,7 +10,7 @@ function App() {
 
   // Fetch real data from the backend on app load
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/data')
+    fetch('/data')
       .then(res => res.json())
       .then(data => {
         setCandidateList(data.candidates);
