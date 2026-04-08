@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
-from llm import extract_details
+from llm_groq import extract_details
 from json_reader import (
     get_candidate_email,
     get_interviewer_email,
@@ -80,6 +80,14 @@ def chat(request: ChatRequest):
     if not candidate:
         return {
             "reply": f"Candidate '{candidate_name}' was not found in the system.",
+            "scheduled": False,
+            "data": None
+        }
+
+    # New Fix: Check if candidate is already scheduled
+    if candidate.get("status") == "scheduled":
+        return {
+            "reply": f"{candidate['name']} is already scheduled for an interview at {candidate.get('interviewTime')} with {candidate.get('interviewer')}. You cannot schedule another one.",
             "scheduled": False,
             "data": None
         }
