@@ -67,8 +67,18 @@ def chat(request: ChatRequest):
         return {"reply": "Error connecting to AI.", "scheduled": False, "data": None, "is_error": True}
 
     intent = result.get("intent")
+    readiness = result.get("readiness", "READY")
     ai_reply = result.get("reply", "Done.")
     action_data = result.get("data", {})
+
+    # MIDDLE GROUND: If LLM knows it is missing required information, stop and reply normally
+    if readiness == "MISSING_INFO":
+        return {
+            "reply": ai_reply,
+            "scheduled": False,
+            "data": None,
+            "is_error": False
+        }
 
     # CASE A: User is just asking a question or chatting
     if intent == "QUERY":
@@ -139,11 +149,6 @@ def chat(request: ChatRequest):
         
         if not candidate:
             return {"reply": f"Candidate '{candidate_name}' not found.", "scheduled": False, "data": None, "is_error": True}
-
-        # SAFETY BELT: Do not schedule if time is missing
-        if not datetime_value or str(datetime_value).strip().lower() in ["null", "none", ""]:
-            # We treat it as a normal reply (asking for time) without making db changes
-            return {"reply": ai_reply, "scheduled": False, "data": None, "is_error": False}
 
         if candidate.get("status") == "scheduled":
             return {"reply": f"{candidate['name']} is already scheduled.", "scheduled": False, "data": None, "is_error": True}

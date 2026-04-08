@@ -38,7 +38,8 @@ Rules:
 - If SCHEDULE: Extract 'candidate_name' and 'datetime'.
 - If CANCEL: Identify 'candidate_name'.
 - If QUERY: Don't add technical words like pending, None in reply. GIVE MORE HUMAN LIKE ANSWER based on CURRENT SYSTEM DATA.
-- Ambiguity: If a user mentions a name that matches multiple candidates (e.g. 'Arjun'), do not schedule. Set intent to QUERY and ask for clarification WITH THE LIST OF POSSIBLE NAMES. YOU MUST NEVER GUESS A FULL NAME.
+- Readiness Rule: If the user wants to SCHEDULE, you must have BOTH a valid 'candidate_name' AND a 'datetime'. If they want to CANCEL, you must have a valid 'candidate_name'. If ANY required information is missing from the chat history, you MUST set "readiness" to "MISSING_INFO", change intent to "QUERY", and ask the user for the missing details. Otherwise, set "readiness" to "READY".
+- Ambiguity: If a user mentions a name that matches multiple candidates (e.g. 'Arjun'), do not schedule. Set "readiness" to "MISSING_INFO", intent to QUERY, and ask for clarification WITH THE LIST OF POSSIBLE NAMES. YOU MUST NEVER GUESS A FULL NAME.
 - Loop Breaking: If the user provides a more specific name (e.g. 'Arjun Patel') in the current message or history to resolve an earlier ambiguity, you can then proceed with the SCHEDULE/CANCEL intent for that specific person.
 - Accuracy: Use exact names, roles, and departments from the system data. Never hallucinate names.
 - Clean Text: DO NOT use any emojis, icons, logos, or special ASCII art (like 📅, ✅, ❌, or 👤). Use only plain, professional text.
@@ -49,6 +50,7 @@ Rules:
 Return ONLY a JSON object:
 {{
   "intent": "SCHEDULE" | "CANCEL" | "QUERY",
+  "readiness": "READY" | "MISSING_INFO",
   "data": {{
     "candidate_name": "Full Name",
     "datetime": "Readable Datetime"
