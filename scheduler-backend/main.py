@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
+from datetime import datetime
 from llm_groq import process_request
 from json_reader import (
     load_data,
@@ -174,9 +175,67 @@ def chat(request: ChatRequest):
         if candidate.get("status") == "scheduled":
             return {"reply": f"{candidate['name']} is already scheduled.", "scheduled": False, "data": None, "is_error": True}
 
-        interviewer = next((i for i in interviewers if i["available"]), None)
+        # VALIDATION: Parse Datetime
+        try:
+            parsed_time = datetime.strptime(datetime_value, "%B %d, %Y at %I:%M %p")
+            now = datetime.now()
+            
+            # 1. Past Date Check
+            if parsed_time < now:
+                return {
+                    "reply": f"I can't schedule an interview in the past ({datetime_value}). Please provide a future date and time.",
+                    "scheduled": False, "data": None, "is_error": True
+                }
+            
+        except ValueError:
+            # If parsing fails, it's likely a weird format from LLM
+            return {
+                "reply": f"The date format provided ('{datetime_value}') is invalid. Please try again with something like 'April 10, 2026 at 10:00 AM'.",
+                "scheduled": False, "data": None, "is_error": True
+            }
+
+        interviewer_name_val = action_data.get("interviewer_name")
+        is_specified = action_data.get("is_interviewer_specified", False)
+
+        interviewer = None
+
+        if is_specified and interviewer_name_val:
+            # SEARCH: Look for requested interviewer
+            interviewer = next((i for i in interviewers if normalize(interviewer_name_val) in normalize(i["name"])), None)
+            
+            if not interviewer:
+                return {"reply": f"I couldn't find an interviewer named '{interviewer_name_val}'.", "scheduled": False, "data": None, "is_error": True}
+            
+            if not interviewer["available"]:
+                return {"reply": f"{interviewer['name']} is currently not available. Please pick another interviewer or let me suggest one.", "scheduled": False, "data": None, "is_error": True}
+        
+        elif interviewer_name_val:
+            # USE AI SUGGESTION (Smart Match)
+            suggested_interviewer = next((i for i in interviewers if normalize(i["name"]) == normalize(interviewer_name_val)), None)
+            
+            if suggested_interviewer and suggested_interviewer["available"]:
+                # TIER 1: Use the AI's exact suggestion
+                interviewer = suggested_interviewer
+            else:
+                # TIER 2: Try to find another interviewer in the same department
+                dept = suggested_interviewer["department"] if suggested_interviewer else None
+                if dept:
+                    interviewer = next((i for i in interviewers if i["available"] and i["department"] == dept), None)
+                
+                # TIER 3: Global fallback (if Tier 1 and Tier 2 both fail)
+                if not interviewer:
+                    interviewer = next((i for i in interviewers if i["available"]), None)
+        
+        else:
+            # FULL FALLBACK: Just pick anyone available
+            interviewer = next((i for i in interviewers if i["available"]), None)
+
         if not interviewer:
-            return {"reply": "No interviewers available.", "scheduled": False, "data": None, "is_error": True}
+            return {"reply": "No interviewers are available at this time.", "scheduled": False, "data": None, "is_error": True}
+
+        # SILENT SYNC: If AI's suggested interviewer was busy, update the reply silently to match the final choice
+        if interviewer_name_val and normalize(interviewer["name"]) != normalize(interviewer_name_val):
+            ai_reply = ai_reply.replace(interviewer_name_val, interviewer["name"])
 
         # Update and Save
         candidate["status"] = "scheduled"
