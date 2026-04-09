@@ -53,13 +53,23 @@ function ChatWindow({ setCandidates, setInterviewers }) {
 
             let botText = data.reply;
 
-            if (data.scheduled) {
-                botText += `
-Candidate: ${data.data?.candidate?.name}
-Interviewer: ${data.data?.interviewer?.name}
-Candidate Email: ${data.data?.candidate_email}
-Interviewer Email: ${data.data?.interviewer_email}
-Interview Time: ${data.data?.candidate?.interviewTime}`;
+            if (data.action_type === "SCHEDULED" || data.action_type === "CANCELED") {
+                botText += `\n\n──────────────────`;
+                
+                if (data.action_type === "SCHEDULED") {
+                    botText += `\n📌 Meeting Scheduled`;
+                    botText += `\n👤 Candidate: ${data.data?.candidate?.name}`;
+                    botText += `\n🧑‍💼 Interviewer: ${data.data?.interviewer?.name}`;
+                    botText += `\n🕒 Time: ${data.data?.candidate?.interviewTime}`;
+                } else if (data.action_type === "CANCELED") {
+                    botText += `\n🗑️ Meeting Canceled`;
+                }
+
+                if (data.email_sent) {
+                    botText += `\n\n✓ Email notifications sent successfully.`;
+                } else {
+                    botText += `\n\n⚠️ Email notifications were skipped or failed.`;
+                }
             }
 
             const botMessage = {

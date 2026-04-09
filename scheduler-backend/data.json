@@ -26,9 +26,7 @@
       "name": "Kanchi Bhatia",
       "role": "ML Engineer",
       "email": "kanchibhatia4@gmail.com",
-      "status": "scheduled",
-      "interviewTime": "April 09, 2026 at 1:00 PM",
-      "interviewer": "Akash Singh"
+      "status": "pending"
     },
     {
       "id": 5,
@@ -170,9 +168,7 @@
       "name": "Akash Singh",
       "department": "Engineering",
       "email": "nikunjsankaliya716@gmail.com",
-      "available": false,
-      "candidate": "Kanchi Bhatia",
-      "time": "April 09, 2026 at 1:00 PM"
+      "available": true
     },
     {
       "id": 5,

@@ -86,7 +86,9 @@ def chat(request: ChatRequest):
             "reply": ai_reply,
             "scheduled": False,
             "data": None,
-            "is_error": False # This stops the ❌ from showing up
+            "is_error": False,
+            "email_sent": False,
+            "action_type": "QUERY"
         }
 
     # CASE B: User wants to CANCEL an interview
@@ -116,6 +118,18 @@ def chat(request: ChatRequest):
         if interviewer_name:
             interviewer = next((i for i in interviewers if normalize(i["name"]) == normalize(interviewer_name)), None)
 
+        # Send Cancellation Email
+        email_success = False
+        if interviewer:
+            email_success = send_confirmation(
+                candidate_name=candidate["name"],
+                candidate_email=candidate["email"],
+                interviewer_name=interviewer["name"],
+                interviewer_email=interviewer["email"],
+                interview_datetime=candidate.get("interviewTime", "TBD"),
+                action="CANCELED"
+            )
+
         # Reset Candidate
         candidate["status"] = "pending"
         candidate.pop("interviewTime", None)
@@ -128,7 +142,14 @@ def chat(request: ChatRequest):
             interviewer.pop("time", None)
 
         save_data(data)
-        return {"reply": ai_reply, "scheduled": False, "data": None, "is_error": False}
+        return {
+            "reply": ai_reply, 
+            "scheduled": False, 
+            "data": None, 
+            "is_error": False, 
+            "email_sent": email_success,
+            "action_type": "CANCELED"
+        }
 
     # CASE C: User wants to SCHEDULE an interview
     if intent == "SCHEDULE":
@@ -167,12 +188,13 @@ def chat(request: ChatRequest):
         
         save_data(data)
 
-        send_confirmation(
+        email_success = send_confirmation(
             candidate_name=candidate["name"],
             candidate_email=candidate["email"],
             interviewer_name=interviewer["name"],
             interviewer_email=interviewer["email"],
-            interview_datetime=datetime_value
+            interview_datetime=datetime_value,
+            action="SCHEDULED"
         )
 
         return {
@@ -184,7 +206,9 @@ def chat(request: ChatRequest):
                 "candidate_email": candidate["email"],
                 "interviewer_email": interviewer["email"]
             },
-            "is_error": False
+            "is_error": False,
+            "email_sent": email_success,
+            "action_type": "SCHEDULED"
         }
 
 
