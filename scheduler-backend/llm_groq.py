@@ -29,14 +29,16 @@ CURRENT SYSTEM DATA:
 
 TASK:
 Identify the user's intent and extract details if necessary.
-You can handle three intents:
+You can handle four intents:
 1. SCHEDULE: User wants to book a new interview.
 2. CANCEL: User wants to cancel an existing interview.
-3. QUERY: User is asking a question, chatting, or making a request about the data.
+3. RESCHEDULE: User already has an interview and wants to change the time, the interviewer, or both.
+4. QUERY: User is asking a question, chatting, or making a request about the data.
 
 Rules:
 - If SCHEDULE: Extract 'candidate_name', 'datetime', and 'interviewer_name'.
-- Smart Matching: If the user DOES NOT mention an interviewer, select the most suitable AVAILABLE interviewer from CURRENT SYSTEM DATA based on how well the candidate's 'role' matches the interviewer's 'department'.
+- If RESCHEDULE: Extract 'candidate_name', and optionally 'datetime' or 'interviewer_name' if the user specifically requests changing them.
+- Smart Matching: For SCHEDULE intents, if the user DOES NOT mention an interviewer, select the most suitable AVAILABLE interviewer from CURRENT SYSTEM DATA based on their role. (CRITICAL: NEVER auto-assign or change an interviewer for RESCHEDULE intents unless explicitly asked. Leave 'interviewer_name' null tracking the current person).
   - NO QUESTIONS: You MUST NOT ask the user for confirmation or choice of interviewers. Just pick the best one and proceed with the SCHEDULE intent immediately.
   - Mapping Guidance: 
     - Data Science / AI Research Depts: Data Analyst, Data Scientist, ML Engineer.
@@ -51,7 +53,7 @@ Rules:
 - Mandatory Time: Users MUST specify a clear time (e.g., "tomorrow at 3 PM"). You are NO LONGER allowed to default to 10:00 AM. If the time is missing, set "readiness" to "MISSING_INFO" and ask the user for the time.
 - If CANCEL: Identify 'candidate_name'.
 - If QUERY: Don't add technical words like pending, None in reply. GIVE MORE HUMAN LIKE ANSWER based on CURRENT SYSTEM DATA.
-- Readiness Rule: If the user wants to SCHEDULE, you must have BOTH a valid 'candidate_name' AND a 'datetime'. If they want to CANCEL, you must have a valid 'candidate_name'. If ANY required information is missing from the chat history, you MUST set "readiness" to "MISSING_INFO", change intent to "QUERY", and ask the user for the missing details. Otherwise, set "readiness" to "READY".
+- Readiness Rule: If SCHEDULE, you must have BOTH a valid 'candidate_name' AND a 'datetime'. If CANCEL, you must have a valid 'candidate_name'. If RESCHEDULE, you must have a valid 'candidate_name', AND at least one of 'datetime' or 'interviewer_name' to change. If ANY required information is missing from the chat history, you MUST set "readiness" to "MISSING_INFO", change intent to "QUERY", and ask the user for the missing details. Otherwise, set "readiness" to "READY".
 - Ambiguity: If a user mentions a name that matches multiple candidates (e.g. 'Arjun'), do not schedule. Set "readiness" to "MISSING_INFO", intent to QUERY, and ask for clarification WITH THE LIST OF POSSIBLE NAMES. YOU MUST NEVER GUESS A FULL NAME.
 - Loop Breaking: If the user provides a more specific name (e.g. 'Arjun Patel') in the current message or history to resolve an earlier ambiguity, you can then proceed with the SCHEDULE/CANCEL intent for that specific person.
 - Accuracy: Use exact names, roles, and departments from the system data. Never hallucinate names.
@@ -62,7 +64,7 @@ Rules:
 
 Return ONLY a JSON object:
 {{
-  "intent": "SCHEDULE" | "CANCEL" | "QUERY",
+  "intent": "SCHEDULE" | "CANCEL" | "RESCHEDULE" | "QUERY",
   "readiness": "READY" | "MISSING_INFO",
   "data": {{
     "candidate_name": "Full Name",

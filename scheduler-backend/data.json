@@ -12,14 +12,18 @@
       "name": "Nikunj Sankaliya",
       "role": "Backend Developer",
       "email": "kanchi2024.b@gmail.com",
-      "status": "pending"
+      "status": "scheduled",
+      "interviewTime": "April 09, 2026 at 6:00 PM",
+      "interviewer": "Ravi Gor"
     },
     {
       "id": 3,
       "name": "Nikunj Chavda",
       "role": "App Developer",
       "email": "nikunj11606@gmail.com",
-      "status": "pending"
+      "status": "scheduled",
+      "interviewTime": "April 10, 2026 at 7:00 PM",
+      "interviewer": "Akash Singh"
     },
     {
       "id": 4,
@@ -164,7 +168,9 @@
       "name": "Akash Singh",
       "department": "Engineering",
       "email": "nikunjsankaliya716@gmail.com",
-      "available": true
+      "available": false,
+      "candidate": "Nikunj Chavda",
+      "time": "April 10, 2026 at 7:00 PM"
     },
     {
       "id": 5,
@@ -185,7 +191,9 @@
       "name": "Ravi Gor",
       "department": "Backend",
       "email": "kanchibhatia4@gmail.com",
-      "available": true
+      "available": false,
+      "candidate": "Nikunj Sankaliya",
+      "time": "April 09, 2026 at 6:00 PM"
     }
   ]
 }

@@ -270,5 +270,91 @@ def chat(request: ChatRequest):
             "action_type": "SCHEDULED"
         }
 
+    # CASE D: User wants to RESCHEDULE an interview
+    elif intent == "RESCHEDULE":
+        candidate_name = action_data.get("candidate_name")
+        datetime_value = action_data.get("datetime")
+        interviewer_name_val = action_data.get("interviewer_name")
+
+        matches = [c for c in candidates if normalize(candidate_name) in normalize(c["name"])]
+        exact_match = next((c for c in matches if normalize(c["name"]) == normalize(candidate_name)), None)
+
+        if exact_match:
+            candidate = exact_match
+        elif len(matches) > 1:
+            names = ", ".join([c["name"] for c in matches])
+            return {"reply": f"I found multiple matches: {names}. Which one did you mean?", "scheduled": False, "data": None, "is_error": True}
+        else:
+            candidate = matches[0] if len(matches) == 1 else None
+        
+        if not candidate:
+            return {"reply": f"Candidate '{candidate_name}' not found.", "scheduled": False, "data": None, "is_error": True}
+
+        if candidate.get("status") != "scheduled":
+            return {"reply": f"{candidate['name']} doesn't have an interview scheduled right now.", "scheduled": False, "data": None, "is_error": True}
+
+        old_time = candidate.get("interviewTime")
+        old_interviewer_name = candidate.get("interviewer")
+        
+        # 1. Resolve Time
+        new_time = datetime_value if datetime_value else old_time
+        if datetime_value:
+            try:
+                parsed_time = datetime.strptime(datetime_value, "%B %d, %Y at %I:%M %p")
+                if parsed_time < datetime.now():
+                    return {"reply": f"I can't reschedule to a past date ({datetime_value}).", "scheduled": False, "data": None, "is_error": True}
+            except ValueError:
+                pass # Rely on LLM formatting
+
+        # 2. Resolve Interviewer
+        new_interviewer = None
+        if interviewer_name_val:
+            new_interviewer = next((i for i in interviewers if normalize(interviewer_name_val) in normalize(i["name"]) and i["available"]), None)
+            if not new_interviewer:
+                return {"reply": f"Interviewer '{interviewer_name_val}' is not available or not found.", "scheduled": False, "data": None, "is_error": True}
+        else:
+            new_interviewer = next((i for i in interviewers if normalize(old_interviewer_name) == normalize(i["name"])), None)
+
+        # 3. Perform Updates
+        # Free old interviewer if changing interviewers
+        if interviewer_name_val and new_interviewer and new_interviewer["name"] != old_interviewer_name:
+            old_i = next((i for i in interviewers if normalize(old_interviewer_name) == normalize(i["name"])), None)
+            if old_i:
+                old_i["available"] = True
+                old_i.pop("candidate", None)
+                old_i.pop("time", None)
+
+        # Lock in new data
+        candidate["interviewTime"] = new_time
+        candidate["interviewer"] = new_interviewer["name"]
+        
+        new_interviewer["available"] = False
+        new_interviewer["candidate"] = candidate_name
+        new_interviewer["time"] = new_time
+        
+        save_data(data)
+
+        email_success = send_confirmation(
+            candidate_name=candidate["name"],
+            candidate_email=candidate["email"],
+            interviewer_name=new_interviewer["name"],
+            interviewer_email=new_interviewer["email"],
+            interview_datetime=new_time,
+            action="RESCHEDULED"
+        )
+
+        return {
+            "reply": ai_reply,
+            "scheduled": True,
+            "data": {
+                "candidate": candidate,
+                "interviewer": new_interviewer,
+                "candidate_email": candidate["email"],
+                "interviewer_email": new_interviewer["email"]
+            },
+            "is_error": False,
+            "email_sent": email_success,
+            "action_type": "RESCHEDULED"
+        }
 
     return {"reply": ai_reply, "scheduled": False, "data": None}

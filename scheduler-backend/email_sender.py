@@ -38,6 +38,11 @@ def send_confirmation(
                 header_text = "Interview Canceled"
                 header_color = "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)"
                 p_text = "An interview has been canceled. Please see the details below."
+            elif action == "RESCHEDULED":
+                subject = f"Interview Rescheduled: {candidate_name}"
+                header_text = "Interview Rescheduled"
+                header_color = "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
+                p_text = "The time for this interview has been updated. Please review the new details below."
             else:
                 subject = f"Interview Scheduled: {candidate_name}"
                 header_text = "Interview Scheduled"
