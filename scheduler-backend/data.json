@@ -44,9 +44,7 @@
       "name": "Rohit Vastani",
       "role": "UI Designer",
       "email": "nikunj11606@gmail.com",
-      "status": "scheduled",
-      "interviewTime": "April 09, 2026 at 11:00 AM",
-      "interviewer": "Zalak Jotaniya"
+      "status": "pending"
     },
     {
       "id": 7,
@@ -147,9 +145,7 @@
       "name": "Zalak Jotaniya",
       "department": "Data Science",
       "email": "nikunj11606@gmail.com",
-      "available": false,
-      "candidate": "Rohit Vastani",
-      "time": "April 09, 2026 at 11:00 AM"
+      "available": true
     },
     {
       "id": 2,

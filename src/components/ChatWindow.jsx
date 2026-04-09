@@ -36,7 +36,7 @@ function ChatWindow({ setCandidates, setInterviewers }) {
                 },
                 body: JSON.stringify({
                     message: inputText,
-                    history: messages.slice(-10) // This sends all previous messages to the backend
+                    history: messages // This sends all previous messages to the backend
                 })
             })
 
