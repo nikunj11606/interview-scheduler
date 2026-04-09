@@ -27,17 +27,15 @@
       "role": "ML Engineer",
       "email": "kanchibhatia4@gmail.com",
       "status": "scheduled",
-      "interviewTime": "April 09, 2026 at 1:00 PM",
-      "interviewer": "Akash Singh"
+      "interviewTime": "April 10, 2026 at 11:00 AM",
+      "interviewer": "Zalak Jotaniya"
     },
     {
       "id": 5,
       "name": "Drashti Rajgor",
       "role": "Data Analyst",
       "email": "nikunjsankaliya716@gmail.com",
-      "status": "scheduled",
-      "interviewTime": null,
-      "interviewer": "Draupadi Murmu"
+      "status": "pending"
     },
     {
       "id": 6,
@@ -51,18 +49,14 @@
       "name": "Anmol Chawla",
       "role": "Frontend Developer",
       "email": "kanchi2024.b@gmail.com",
-      "status": "scheduled",
-      "interviewTime": "None",
-      "interviewer": "Ravi Gor"
+      "status": "pending"
     },
     {
       "id": 8,
       "name": "Sai Pallavi",
       "role": "Data Analyst",
       "email": "kanchibhatia4@gmail.com",
-      "status": "scheduled",
-      "interviewTime": "April 09, 2026 at 4:00 PM",
-      "interviewer": "Vaibhav Bhatia"
+      "status": "pending"
     },
     {
       "id": 9,
@@ -145,7 +139,9 @@
       "name": "Zalak Jotaniya",
       "department": "Data Science",
       "email": "nikunj11606@gmail.com",
-      "available": true
+      "available": false,
+      "candidate": "Kanchi Bhatia",
+      "time": "April 10, 2026 at 11:00 AM"
     },
     {
       "id": 2,
@@ -170,36 +166,28 @@
       "name": "Akash Singh",
       "department": "Engineering",
       "email": "nikunjsankaliya716@gmail.com",
-      "available": false,
-      "candidate": "Kanchi Bhatia",
-      "time": "April 09, 2026 at 1:00 PM"
+      "available": true
     },
     {
       "id": 5,
       "name": "Draupadi Murmu",
       "department": "HR",
       "email": "nikunj11606@gmail.com",
-      "available": false,
-      "candidate": "Drashti Rajgor",
-      "time": null
+      "available": true
     },
     {
       "id": 6,
       "name": "Vaibhav Bhatia",
       "department": "Design",
       "email": "kanchi2024.b@gmail.com",
-      "available": false,
-      "candidate": "Sai Pallavi",
-      "time": "April 09, 2026 at 4:00 PM"
+      "available": true
     },
     {
       "id": 7,
       "name": "Ravi Gor",
       "department": "Backend",
       "email": "kanchibhatia4@gmail.com",
-      "available": false,
-      "candidate": "Anmol Chawla",
-      "time": "None"
+      "available": true
     }
   ]
 }
