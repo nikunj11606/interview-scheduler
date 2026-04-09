@@ -13,7 +13,8 @@ from json_reader import (
 )
 from email_sender import send_confirmation
 
-load_dotenv()
+from pathlib import Path
+load_dotenv(Path(__file__).resolve().parent / ".env")
 
 app = FastAPI()
 

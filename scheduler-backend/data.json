@@ -12,18 +12,14 @@
       "name": "Nikunj Sankaliya",
       "role": "Backend Developer",
       "email": "kanchi2024.b@gmail.com",
-      "status": "scheduled",
-      "interviewTime": "April 09, 2026 at 6:00 PM",
-      "interviewer": "Ravi Gor"
+      "status": "pending"
     },
     {
       "id": 3,
       "name": "Nikunj Chavda",
       "role": "App Developer",
       "email": "nikunj11606@gmail.com",
-      "status": "scheduled",
-      "interviewTime": "April 10, 2026 at 7:00 PM",
-      "interviewer": "Akash Singh"
+      "status": "pending"
     },
     {
       "id": 4,
@@ -37,7 +33,9 @@
       "name": "Drashti Rajgor",
       "role": "Data Analyst",
       "email": "nikunjsankaliya716@gmail.com",
-      "status": "pending"
+      "status": "scheduled",
+      "interviewTime": "April 10, 2026 at 2:00 PM",
+      "interviewer": "Zalak Jotaniya"
     },
     {
       "id": 6,
@@ -73,8 +71,8 @@
       "role": "Backend Developer",
       "email": "nikunj11606@gmail.com",
       "status": "scheduled",
-      "interviewTime": "July 10, 2026 at 3:00 PM",
-      "interviewer": "Amit Thakkar"
+      "interviewTime": "April 10, 2026 at 2:00 PM",
+      "interviewer": "Ravi Gor"
     },
     {
       "id": 11,
@@ -116,9 +114,7 @@
       "name": "Darshan Gandhi",
       "role": "System Engineer",
       "email": "kanchibhatia4@gmail.com",
-      "status": "scheduled",
-      "interviewTime": "July 12, 2026 at 11:00 AM",
-      "interviewer": "Demis Hassabis"
+      "status": "pending"
     },
     {
       "id": 17,
@@ -142,35 +138,29 @@
       "department": "Data Science",
       "email": "nikunj11606@gmail.com",
       "available": false,
-      "candidate": "Kanchi Bhatia",
-      "time": "April 10, 2026 at 11:00 AM"
+      "candidate": "Drashti Rajgor",
+      "time": "April 10, 2026 at 2:00 PM"
     },
     {
       "id": 2,
       "name": "Amit Thakkar",
       "department": "Engineering",
       "email": "kanchi2024.b@gmail.com",
-      "candidate": "Nency Dhankecha",
-      "time": "July 10, 2026 at 3:00 PM",
-      "available": false
+      "available": true
     },
     {
       "id": 3,
       "name": "Demis Hassabis",
       "department": "AI Research",
       "email": "kanchibhatia4@gmail.com",
-      "candidate": "Darshan Gandhi",
-      "time": "July 12, 2026 at 11:00 AM",
-      "available": false
+      "available": true
     },
     {
       "id": 4,
       "name": "Akash Singh",
       "department": "Engineering",
       "email": "nikunjsankaliya716@gmail.com",
-      "available": false,
-      "candidate": "Nikunj Chavda",
-      "time": "April 10, 2026 at 7:00 PM"
+      "available": true
     },
     {
       "id": 5,
@@ -192,8 +182,8 @@
       "department": "Backend",
       "email": "kanchibhatia4@gmail.com",
       "available": false,
-      "candidate": "Nikunj Sankaliya",
-      "time": "April 09, 2026 at 6:00 PM"
+      "candidate": "Nency Dhankecha",
+      "time": "April 10, 2026 at 2:00 PM"
     }
   ]
 }
