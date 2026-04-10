@@ -12,7 +12,8 @@ def send_confirmation(
     interviewer_name: str,
     interviewer_email: str,
     interview_datetime: str,
-    action: str = "SCHEDULED"  # 'SCHEDULED' or 'CANCELED'
+    action: str = "SCHEDULED",
+    meet_link: str = None         # Optional Google Meet link
 ) -> bool:
     try:
         EMAIL_USER = os.getenv("EMAIL_USER")
@@ -117,6 +118,8 @@ ScheduleAI System
                     </div>
                     
                     <p>You are receiving this email as the <strong>{role_title}</strong> for this session.</p>
+
+                    {'<table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 20px; text-align: center;"><tr><td><a href="' + meet_link + '" style="display: inline-block; background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; letter-spacing: 0.5px;">Join Google Meet</a></td></tr></table>' if meet_link and action != 'CANCELED' else ''}
                   </div>
                   <div class="footer">
                     &copy; 2026 ScheduleAI. Automated Interview System.

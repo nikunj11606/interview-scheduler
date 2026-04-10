@@ -14,6 +14,14 @@ from json_reader import (
     get_all_interviewers
 )
 from email_sender import send_confirmation
+from calendar_service import (
+    get_calendar_service,
+    check_schedule_conflict,
+    check_personal_busy,
+    create_interview_event,
+    delete_interview_event,
+    reschedule_interview_event,
+)
 
 from pathlib import Path
 load_dotenv(Path(__file__).resolve().parent / ".env")
@@ -136,6 +144,11 @@ def chat(request: ChatRequest):
         if interviewer_name:
             interviewer = next((i for i in interviewers if normalize(i["name"]) == normalize(interviewer_name)), None)
 
+        # Cancel event on Google Calendar (silent)
+        cal_service = get_calendar_service()
+        if cal_service and interviewer:
+            delete_interview_event(cal_service, candidate["name"], interviewer["name"])
+
         # Send Cancellation Email
         email_success = False
         if interviewer:
@@ -247,6 +260,14 @@ def chat(request: ChatRequest):
         if interviewer_name_val and normalize(interviewer["name"]) != normalize(interviewer_name_val):
             ai_reply = ai_reply.replace(interviewer_name_val, interviewer["name"])
 
+        # Calendar: Check for conflicts before confirming
+        cal_service = get_calendar_service()
+        if cal_service:
+            if check_schedule_conflict(cal_service, interviewer["name"], datetime_value):
+                return {"reply": f"{interviewer['name']} already has an interview at that time. Please choose a different slot.", "scheduled": False, "data": None, "is_error": True}
+            if check_personal_busy(cal_service, interviewer["email"], datetime_value):
+                return {"reply": f"{interviewer['name']} is personally busy at that time. Please choose a different slot.", "scheduled": False, "data": None, "is_error": True}
+
         # Update and Save
         candidate["status"] = "scheduled"
         candidate["interviewTime"] = datetime_value
@@ -262,13 +283,24 @@ def chat(request: ChatRequest):
             print(f"Save error (SCHEDULE): {e}")
             raise HTTPException(status_code=500, detail="Failed to save changes.")
 
+        # Create silent Google Calendar event and get Meet link
+        meet_link = None
+        if cal_service:
+            meet_link = create_interview_event(
+                cal_service,
+                candidate["name"], candidate["email"],
+                interviewer["name"], interviewer["email"],
+                datetime_value
+            )
+
         email_success = send_confirmation(
             candidate_name=candidate["name"],
             candidate_email=candidate["email"],
             interviewer_name=interviewer["name"],
             interviewer_email=interviewer["email"],
             interview_datetime=datetime_value,
-            action="SCHEDULED"
+            action="SCHEDULED",
+            meet_link=meet_link
         )
 
         return {
@@ -357,13 +389,25 @@ def chat(request: ChatRequest):
             print(f"Save error (RESCHEDULE): {e}")
             raise HTTPException(status_code=500, detail="Failed to save changes.")
 
+        # Reschedule Google Calendar event (delete old + create new) and get new Meet link
+        cal_service = get_calendar_service()
+        meet_link = None
+        if cal_service:
+            meet_link = reschedule_interview_event(
+                cal_service,
+                candidate["name"], candidate["email"],
+                new_interviewer["name"], new_interviewer["email"],
+                new_time
+            )
+
         email_success = send_confirmation(
             candidate_name=candidate["name"],
             candidate_email=candidate["email"],
             interviewer_name=new_interviewer["name"],
             interviewer_email=new_interviewer["email"],
             interview_datetime=new_time,
-            action="RESCHEDULED"
+            action="RESCHEDULED",
+            meet_link=meet_link
         )
 
         return {
