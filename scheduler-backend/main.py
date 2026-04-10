@@ -1,6 +1,8 @@
-from fastapi import FastAPI
+import os
+import threading
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 from datetime import datetime
 from llm_groq import process_request
@@ -18,17 +20,39 @@ load_dotenv(Path(__file__).resolve().parent / ".env")
 
 app = FastAPI()
 
+# ── Thread lock to prevent data race conditions on concurrent requests ──
+_data_lock = threading.Lock()
+
+# ── Environment-aware CORS ──
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 class ChatRequest(BaseModel):
-    message: str
-    history: list = [] # New field to accept chat history
+    message: str = Field(..., min_length=1, max_length=2000)
+    history: list = []
+
+# ── Reusable helper: find a candidate by name with ambiguity handling ──
+def find_candidate(name: str, candidates: list):
+    """Returns (candidate_dict, error_response_dict). One will always be None."""
+    if not name:
+        return None, {"reply": "I need a candidate name to proceed.", "scheduled": False, "data": None, "is_error": True}
+    matches = [c for c in candidates if normalize(name) in normalize(c["name"])]
+    exact = next((c for c in matches if normalize(c["name"]) == normalize(name)), None)
+    if exact:
+        return exact, None
+    if len(matches) > 1:
+        names = ", ".join(c["name"] for c in matches)
+        return None, {"reply": f"I found multiple matches: {names}. Which one did you mean?", "scheduled": False, "data": None, "is_error": True}
+    if len(matches) == 1:
+        return matches[0], None
+    return None, {"reply": f"I couldn't find a candidate named '{name}'.", "scheduled": False, "data": None, "is_error": True}
 
 @app.get("/")
 def root():
@@ -43,13 +67,17 @@ def get_data():
 
 @app.post("/chat")
 def chat(request: ChatRequest):
-    user_text = request.message
-    history = request.history # Capture the history
+    user_text = request.message.strip()
+    history = request.history
 
     # Step 1 — Load data to provide context to LLM
-    data = load_data()
-    candidates = data["candidates"]
-    interviewers = data["interviewers"]
+    try:
+        data = load_data()
+        candidates = data["candidates"]
+        interviewers = data["interviewers"]
+    except Exception as e:
+        print(f"Data load error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to load scheduling data.")
 
     # Step 2 — Create data summary for context-aware Q&A
     summary = "Current Candidates:\n"
@@ -71,7 +99,7 @@ def chat(request: ChatRequest):
     intent = result.get("intent")
     readiness = result.get("readiness", "READY")
     ai_reply = result.get("reply", "Done.")
-    action_data = result.get("data", {})
+    action_data = result.get("data") or {}  # null-safe: treats both None and missing as {}
 
     # MIDDLE GROUND: If LLM knows it is missing required information, stop and reply normally
     if readiness == "MISSING_INFO":
@@ -96,21 +124,9 @@ def chat(request: ChatRequest):
     # CASE B: User wants to CANCEL an interview
     if intent == "CANCEL":
         candidate_name = action_data.get("candidate_name")
-        
-        # SEARCH LOGIC: Look for all potential matches
-        matches = [c for c in candidates if normalize(candidate_name) in normalize(c["name"])]
-        exact_match = next((c for c in matches if normalize(c["name"]) == normalize(candidate_name)), None)
-
-        if exact_match:
-            candidate = exact_match
-        elif len(matches) > 1:
-            names = ", ".join([c["name"] for c in matches])
-            return {"reply": f"I found multiple matches: {names}. Which one did you mean?", "scheduled": False, "data": None, "is_error": True}
-        else:
-            candidate = matches[0] if len(matches) == 1 else None
-        
-        if not candidate:
-            return {"reply": f"Sorry, I couldn't find a candidate named {candidate_name}.", "scheduled": False, "data": None, "is_error": True}
+        candidate, err = find_candidate(candidate_name, candidates)
+        if err:
+            return err
 
         if candidate["status"] != "scheduled":
             return {"reply": f"{candidate['name']} doesn't have an interview scheduled.", "scheduled": False, "data": None, "is_error": True}
@@ -143,7 +159,12 @@ def chat(request: ChatRequest):
             interviewer.pop("candidate", None)
             interviewer.pop("time", None)
 
-        save_data(data)
+        try:
+            with _data_lock:
+                save_data(data)
+        except Exception as e:
+            print(f"Save error (CANCEL): {e}")
+            raise HTTPException(status_code=500, detail="Failed to save changes.")
         return {
             "reply": ai_reply, 
             "scheduled": False, 
@@ -157,21 +178,9 @@ def chat(request: ChatRequest):
     if intent == "SCHEDULE":
         candidate_name = action_data.get("candidate_name")
         datetime_value = action_data.get("datetime")
-
-        # SEARCH LOGIC: Look for all potential matches
-        matches = [c for c in candidates if normalize(candidate_name) in normalize(c["name"])]
-        exact_match = next((c for c in matches if normalize(c["name"]) == normalize(candidate_name)), None)
-
-        if exact_match:
-            candidate = exact_match
-        elif len(matches) > 1:
-            names = ", ".join([c["name"] for c in matches])
-            return {"reply": f"I found multiple matches: {names}. Which one did you mean?", "scheduled": False, "data": None, "is_error": True}
-        else:
-            candidate = matches[0] if len(matches) == 1 else None
-        
-        if not candidate:
-            return {"reply": f"Candidate '{candidate_name}' not found.", "scheduled": False, "data": None, "is_error": True}
+        candidate, err = find_candidate(candidate_name, candidates)
+        if err:
+            return err
 
         if candidate.get("status") == "scheduled":
             return {"reply": f"{candidate['name']} is already scheduled.", "scheduled": False, "data": None, "is_error": True}
@@ -246,7 +255,12 @@ def chat(request: ChatRequest):
         interviewer["candidate"] = candidate_name
         interviewer["time"] = datetime_value
         
-        save_data(data)
+        try:
+            with _data_lock:
+                save_data(data)
+        except Exception as e:
+            print(f"Save error (SCHEDULE): {e}")
+            raise HTTPException(status_code=500, detail="Failed to save changes.")
 
         email_success = send_confirmation(
             candidate_name=candidate["name"],
@@ -276,20 +290,9 @@ def chat(request: ChatRequest):
         candidate_name = action_data.get("candidate_name")
         datetime_value = action_data.get("datetime")
         interviewer_name_val = action_data.get("interviewer_name")
-
-        matches = [c for c in candidates if normalize(candidate_name) in normalize(c["name"])]
-        exact_match = next((c for c in matches if normalize(c["name"]) == normalize(candidate_name)), None)
-
-        if exact_match:
-            candidate = exact_match
-        elif len(matches) > 1:
-            names = ", ".join([c["name"] for c in matches])
-            return {"reply": f"I found multiple matches: {names}. Which one did you mean?", "scheduled": False, "data": None, "is_error": True}
-        else:
-            candidate = matches[0] if len(matches) == 1 else None
-        
-        if not candidate:
-            return {"reply": f"Candidate '{candidate_name}' not found.", "scheduled": False, "data": None, "is_error": True}
+        candidate, err = find_candidate(candidate_name, candidates)
+        if err:
+            return err
 
         if candidate.get("status") != "scheduled":
             return {"reply": f"{candidate['name']} doesn't have an interview scheduled right now.", "scheduled": False, "data": None, "is_error": True}
@@ -310,9 +313,23 @@ def chat(request: ChatRequest):
         # 2. Resolve Interviewer
         new_interviewer = None
         if interviewer_name_val:
-            new_interviewer = next((i for i in interviewers if normalize(interviewer_name_val) in normalize(i["name"]) and i["available"]), None)
-            if not new_interviewer:
-                return {"reply": f"Interviewer '{interviewer_name_val}' is not available or not found.", "scheduled": False, "data": None, "is_error": True}
+            # Find the interviewer by name regardless of availability first
+            requested_interviewer = next(
+                (i for i in interviewers if normalize(interviewer_name_val) in normalize(i["name"])), None
+            )
+            if not requested_interviewer:
+                return {"reply": f"I couldn't find an interviewer named '{interviewer_name_val}'.", "scheduled": False, "data": None, "is_error": True}
+            
+            # Check availability:
+            # Case 1: They are free — perfect
+            if requested_interviewer["available"]:
+                new_interviewer = requested_interviewer
+            # Case 2: They are already assigned to THIS candidate — allow (we're just updating the time)
+            elif normalize(requested_interviewer.get("candidate", "")) == normalize(candidate["name"]):
+                new_interviewer = requested_interviewer
+            # Case 3: They are booked with someone else — reject
+            else:
+                return {"reply": f"{requested_interviewer['name']} is currently assigned to another candidate and is not available.", "scheduled": False, "data": None, "is_error": True}
         else:
             new_interviewer = next((i for i in interviewers if normalize(old_interviewer_name) == normalize(i["name"])), None)
 
@@ -333,7 +350,12 @@ def chat(request: ChatRequest):
         new_interviewer["candidate"] = candidate_name
         new_interviewer["time"] = new_time
         
-        save_data(data)
+        try:
+            with _data_lock:
+                save_data(data)
+        except Exception as e:
+            print(f"Save error (RESCHEDULE): {e}")
+            raise HTTPException(status_code=500, detail="Failed to save changes.")
 
         email_success = send_confirmation(
             candidate_name=candidate["name"],
