@@ -12,14 +12,19 @@
       "name": "Nikunj Sankaliya",
       "role": "Backend Developer",
       "email": "nikunj11606@gmail.com",
-      "status": "pending"
+      "status": "scheduled",
+      "interviewTime": "April 11, 2026 at 6:00 PM",
+      "interviewer": "Akash Singh",
+      "eventId": "ctvp424t5thb00baarlkqf5e1c"
     },
     {
       "id": 3,
       "name": "Nikunj Chavda",
       "role": "App Developer",
       "email": "nikunj11606@gmail.com",
-      "status": "pending"
+      "status": "scheduled",
+      "interviewTime": "April 11, 2026 at 6:00 PM",
+      "interviewer": "Vaibhav Bhatia"
     },
     {
       "id": 4,
@@ -159,7 +164,9 @@
       "name": "Akash Singh",
       "department": "Engineering",
       "email": "nikunjsankaliya716@gmail.com",
-      "available": true
+      "available": false,
+      "candidate": "Nikunj Sankaliya",
+      "time": "April 11, 2026 at 6:00 PM"
     },
     {
       "id": 5,
@@ -173,7 +180,9 @@
       "name": "Vaibhav Bhatia",
       "department": "Design",
       "email": "kanchibhatia4@gmail.com",
-      "available": true
+      "available": false,
+      "candidate": "Nikunj Chavda",
+      "time": "April 11, 2026 at 6:00 PM"
     },
     {
       "id": 7,

@@ -6,7 +6,7 @@ from googleapiclient.discovery import build
 from datetime import datetime, timedelta
 import pytz
 
-SCOPES = ['https://www.googleapis.com/auth/calendar.events', 'https://www.googleapis.com/auth/calendar.readonly']
+SCOPES = ['https://www.googleapis.com/auth/calendar']
 
 # Use Indian Standard Time since the app time is India
 TIMEZONE = "Asia/Kolkata"
@@ -21,28 +21,22 @@ def get_calendar_service():
     if os.path.exists(token_path):
         creds = Credentials.from_authorized_user_file(token_path, SCOPES)
         
-    # If there are no (valid) credentials available, let the user log in.
+    # If there are no (valid) credentials available, handle refresh or fail.
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             print("Refreshing Google expired token...")
             try:
                 creds.refresh(Request())
+                # Save the refreshed credentials
+                with open(token_path, 'w') as token_file:
+                    token_file.write(creds.to_json())
             except Exception as e:
-                print("Failed to refresh token, prompting login:", e)
+                print("Failed to refresh token:", e)
                 creds = None
         
         if not creds:
-            if not os.path.exists(client_secrets_path):
-                print(f"Warning: OAuth Client secrets file not found at {client_secrets_path}")
-                return None
-            print("Starting OAuth flow. Check your browser to authenticate!")
-            # This opens a browser automatically for the user to log in
-            flow = InstalledAppFlow.from_client_secrets_file(client_secrets_path, SCOPES)
-            creds = flow.run_local_server(port=0)
-            
-        # Save the credentials for the next run
-        with open(token_path, 'w') as token_file:
-            token_file.write(creds.to_json())
+            print("[CALENDAR ERROR] No valid token.json found. Please run 'python authenticate_calendar.py' once manually.")
+            return None
 
     try:
         service = build('calendar', 'v3', credentials=creds)
@@ -135,3 +129,104 @@ def delete_event(service, event_id):
         print(f"Event {event_id} deleted.")
     except Exception as e:
         print(f"Failed to delete event: {e}")
+
+
+# ── Extra functions used by main.py's intent routing ──
+
+def check_schedule_conflict(service, interviewer_name: str, dt_str: str) -> bool:
+    """
+    Returns True if a calendar event at dt_str exists whose title contains
+    the interviewer's name (meaning they already have an interview then).
+    Returns False if no conflict found (they are free).
+    """
+    if not service:
+        return False
+    try:
+        start_dt = datetime.strptime(dt_str.strip(), "%B %d, %Y at %I:%M %p")
+        local_tz = pytz.timezone(TIMEZONE)
+        start_dt = local_tz.localize(start_dt)
+        end_dt = start_dt + timedelta(hours=1)
+
+        events_result = service.events().list(
+            calendarId='primary',
+            timeMin=start_dt.isoformat(),
+            timeMax=end_dt.isoformat(),
+            singleEvents=True,
+            orderBy='startTime'
+        ).execute()
+
+        for event in events_result.get('items', []):
+            summary = event.get('summary', '')
+            if interviewer_name.strip().lower() in summary.lower():
+                print(f"[Calendar] Conflict found for {interviewer_name}: '{summary}'")
+                return True
+        return False
+    except Exception as e:
+        print(f"[Calendar] check_schedule_conflict error: {e}")
+        return False  # Fail open — don't block if calendar is unreachable
+
+
+def check_personal_busy(service, interviewer_email: str, dt_str: str) -> bool:
+    """
+    Uses Freebusy API to check if the interviewer's personal calendar is busy.
+    Returns True if busy, False if free or on error.
+    """
+    if not service:
+        return False
+    try:
+        start_dt = datetime.strptime(dt_str.strip(), "%B %d, %Y at %I:%M %p")
+        local_tz = pytz.timezone(TIMEZONE)
+        start_dt = local_tz.localize(start_dt)
+        end_dt = start_dt + timedelta(hours=1)
+
+        body = {
+            "timeMin": start_dt.isoformat(),
+            "timeMax": end_dt.isoformat(),
+            "timeZone": TIMEZONE,
+            "items": [{"id": interviewer_email}],
+        }
+        result = service.freebusy().query(body=body).execute()
+        busy_slots = result.get("calendars", {}).get(interviewer_email, {}).get("busy", [])
+        return len(busy_slots) > 0
+    except Exception as e:
+        print(f"[Calendar] check_personal_busy error: {e}")
+        return False  # Fail open
+
+
+def delete_interview_event(service, candidate_name: str, interviewer_name: str) -> bool:
+    """
+    Searches for an event titled 'Interview: candidate & interviewer' and deletes it.
+    """
+    if not service:
+        return False
+    try:
+        events_result = service.events().list(
+            calendarId='primary',
+            q=f"Interview: {candidate_name}",
+            singleEvents=True,
+            orderBy='startTime'
+        ).execute()
+
+        for event in events_result.get('items', []):
+            summary = event.get('summary', '').lower()
+            if candidate_name.lower() in summary and interviewer_name.lower() in summary:
+                service.events().delete(
+                    calendarId='primary',
+                    eventId=event['id'],
+                    sendUpdates='none'
+                ).execute()
+                print(f"[Calendar] Deleted event: '{event.get('summary')}'")
+                return True
+        return False
+    except Exception as e:
+        print(f"[Calendar] delete_interview_event error: {e}")
+        return False
+
+
+def reschedule_interview_event(service, candidate_name, candidate_email,
+                                interviewer_name, interviewer_email, new_dt_str):
+    """Delete old event and create a new one at the new time."""
+    delete_interview_event(service, candidate_name, interviewer_name)
+    return create_interview_event(service, candidate_name, candidate_email,
+                                   interviewer_name, interviewer_email, new_dt_str)
+

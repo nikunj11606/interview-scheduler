@@ -14,15 +14,19 @@ from json_reader import (
     get_all_interviewers
 )
 from email_sender import send_confirmation
-from calendar_service import get_calendar_service, check_availability, create_interview_event, delete_event
+from calendar_service import (
+    get_calendar_service,
+    check_schedule_conflict,
+    check_personal_busy,
+    create_interview_event,
+    delete_interview_event,
+    reschedule_interview_event,
+)
 
 from pathlib import Path
 load_dotenv(Path(__file__).resolve().parent / ".env")
 
 app = FastAPI()
-
-# Initialize Google Calendar once at startup
-calendar_service_instance = get_calendar_service()
 
 # ── Thread lock to prevent data race conditions on concurrent requests ──
 _data_lock = threading.Lock()
@@ -91,8 +95,11 @@ def chat(request: ChatRequest):
     
     summary += "\nInterviewers:\n"
     for i in interviewers:
-        assigned = f", Assigned to: {i.get('candidate')} at {i.get('time')}" if not i['available'] else ""
-        summary += f"- {i['name']} (Department: {i['department']}, Available: {i['available']}{assigned})\n"
+        if i['available']:
+            status_str = "Free (no interviews scheduled)"
+        else:
+            status_str = f"Has an interview with {i.get('candidate', 'someone')} at {i.get('time', 'unknown time')} — free at all other times"
+        summary += f"- {i['name']} (Department: {i['department']}, Status: {status_str})\n"
 
     # Step 3 — Process request via Groq (now passing history)
     result = process_request(user_text, summary, history)
@@ -140,9 +147,10 @@ def chat(request: ChatRequest):
         if interviewer_name:
             interviewer = next((i for i in interviewers if normalize(i["name"]) == normalize(interviewer_name)), None)
 
-        event_id_to_delete = candidate.get("eventId")
-        if event_id_to_delete:
-            delete_event(calendar_service_instance, event_id_to_delete)
+        # Delete event from Google Calendar silently
+        cal_service = get_calendar_service()
+        if cal_service and interviewer:
+            delete_interview_event(cal_service, candidate["name"], interviewer["name"])
 
         # Send Cancellation Email
         email_success = False
@@ -225,8 +233,16 @@ def chat(request: ChatRequest):
             if not interviewer:
                 return {"reply": f"I couldn't find an interviewer named '{interviewer_name_val}'.", "scheduled": False, "data": None, "is_error": True}
             
-            if not interviewer["available"]:
-                return {"reply": f"{interviewer['name']} is currently not available. Please pick another interviewer or let me suggest one.", "scheduled": False, "data": None, "is_error": True}
+            # Calendar: Check for conflicts before confirming
+            cal_service = get_calendar_service()
+            if cal_service:
+                if check_schedule_conflict(cal_service, interviewer["name"], datetime_value):
+                    return {"reply": f"{interviewer['name']} already has an interview at that time. Please choose a different slot.", "scheduled": False, "data": None, "is_error": True}
+                # Freebusy check is advisory only — shared test emails can cause false positives
+                # Only block if BOTH our system AND personal calendar agree they are busy
+                if check_personal_busy(cal_service, interviewer["email"], datetime_value):
+                    if not interviewer["available"]:
+                        return {"reply": f"{interviewer['name']} is busy at that time on their personal calendar. Please choose a different slot.", "scheduled": False, "data": None, "is_error": True}
         
         elif interviewer_name_val:
             # USE AI SUGGESTION (Smart Match)
@@ -252,14 +268,6 @@ def chat(request: ChatRequest):
         if not interviewer:
             return {"reply": "No interviewers are available at this time.", "scheduled": False, "data": None, "is_error": True}
 
-        # Double check with real Google Calendar
-        is_free_on_gcal = check_availability(calendar_service_instance, interviewer["email"], datetime_value)
-        if not is_free_on_gcal:
-            return {
-                "reply": f"{interviewer['name']} is already busy on Google Calendar at that time. Please suggest another time.",
-                "scheduled": False, "data": None, "is_error": True
-            }
-
         # SILENT SYNC: If AI's suggested interviewer was busy, update the reply silently to match the final choice
         if interviewer_name_val and normalize(interviewer["name"]) != normalize(interviewer_name_val):
             ai_reply = ai_reply.replace(interviewer_name_val, interviewer["name"])
@@ -280,20 +288,21 @@ def chat(request: ChatRequest):
             print(f"Save error (SCHEDULE): {e}")
             raise HTTPException(status_code=500, detail="Failed to save changes.")
 
-        # Create Google Calendar Event
-        event_id, meet_link = create_interview_event(
-            calendar_service_instance,
-            candidate["name"], candidate["email"],
-            interviewer["name"], interviewer["email"],
-            datetime_value
-        )
-        if event_id:
-            candidate["eventId"] = event_id
-            try:
-                with _data_lock:
-                    save_data(data)
-            except Exception as e:
-                print(f"Save error (eventId UPDATE): {e}")
+        # Create Google Calendar Event and get Meet link
+        cal_service = get_calendar_service()
+        meet_link = None
+        if cal_service:
+            result = create_interview_event(
+                cal_service,
+                candidate["name"], candidate["email"],
+                interviewer["name"], interviewer["email"],
+                datetime_value
+            )
+            # create_interview_event returns (event_id, meet_link) as a tuple
+            if isinstance(result, tuple):
+                _, meet_link = result
+            else:
+                meet_link = result
 
         email_success = send_confirmation(
             candidate_name=candidate["name"],
@@ -368,21 +377,21 @@ def chat(request: ChatRequest):
             new_interviewer = next((i for i in interviewers if normalize(old_interviewer_name) == normalize(i["name"])), None)
 
         if new_interviewer:
-            is_free_on_gcal = check_availability(calendar_service_instance, new_interviewer["email"], new_time)
-            # If changing to same time/person, the old event occupies GCal.
-            if not is_free_on_gcal and not (new_interviewer["name"] == old_interviewer_name and new_time == old_time):
-                return {
-                    "reply": f"{new_interviewer['name']} is already busy on Google Calendar at {new_time}. Please select another time.",
-                    "scheduled": False, "data": None, "is_error": True
-                }
+            cal_service_check = get_calendar_service()
+            if cal_service_check:
+                # Skip conflict check if keeping same interviewer and same time (unchanged reschedule)
+                if not (new_interviewer["name"] == old_interviewer_name and new_time == old_time):
+                    if check_schedule_conflict(cal_service_check, new_interviewer["name"], new_time):
+                        return {
+                            "reply": f"{new_interviewer['name']} already has an interview at {new_time}. Please select another time.",
+                            "scheduled": False, "data": None, "is_error": True
+                        }
 
         # 3. Perform Updates
-        
-        # Delete old event from GCal
-        old_event_id = candidate.get("eventId")
-        if old_event_id:
-            delete_event(calendar_service_instance, old_event_id)
-            candidate.pop("eventId", None)
+        # Delete old event from GCal silently
+        cal_service_del = get_calendar_service()
+        if cal_service_del:
+            delete_interview_event(cal_service_del, candidate["name"], old_interviewer_name)
 
         # Free old interviewer if changing interviewers
         if interviewer_name_val and new_interviewer and new_interviewer["name"] != old_interviewer_name:
@@ -408,19 +417,20 @@ def chat(request: ChatRequest):
             raise HTTPException(status_code=500, detail="Failed to save changes.")
 
         # Create new Google Calendar Event
-        new_event_id, meet_link = create_interview_event(
-            calendar_service_instance,
-            candidate["name"], candidate["email"],
-            new_interviewer["name"], new_interviewer["email"],
-            new_time
-        )
-        if new_event_id:
-            candidate["eventId"] = new_event_id
-            try:
-                with _data_lock:
-                    save_data(data)
-            except Exception as e:
-                print(f"Save error (eventId UPDATE RESCHEDULE): {e}")
+        cal_service_new = get_calendar_service()
+        meet_link = None
+        if cal_service_new:
+            result = create_interview_event(
+                cal_service_new,
+                candidate["name"], candidate["email"],
+                new_interviewer["name"], new_interviewer["email"],
+                new_time
+            )
+            # create_interview_event returns (event_id, meet_link) as a tuple
+            if isinstance(result, tuple):
+                _, meet_link = result
+            else:
+                meet_link = result
 
         email_success = send_confirmation(
             candidate_name=candidate["name"],
