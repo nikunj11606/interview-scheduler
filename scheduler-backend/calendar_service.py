@@ -6,7 +6,10 @@ from googleapiclient.discovery import build
 from datetime import datetime, timedelta
 import pytz
 
-SCOPES = ['https://www.googleapis.com/auth/calendar']
+SCOPES = [
+    'https://www.googleapis.com/auth/calendar',
+    'https://www.googleapis.com/auth/meetings.space.created'  # Google Meet API
+]
 
 # Use Indian Standard Time since the app time is India
 TIMEZONE = "Asia/Kolkata"
@@ -73,49 +76,97 @@ def check_availability(service, interviewer_email, dt_str, duration_minutes=60):
         print(f"Calendar auth/read check failed: {e}. Assuming available.")
         return True
 
+
+def create_open_meet_space(creds):
+    """
+    Uses the Google Meet REST API to create a Meet 'space' with OPEN access.
+    OPEN = anyone with the link can join directly without host approval.
+    Returns the meeting URI string, or None on failure.
+    """
+    try:
+        meet_service = build('meet', 'v2', credentials=creds)
+        space = meet_service.spaces().create(body={
+            "config": {
+                "accessType": "OPEN"   # No waiting room, no host admission required
+            }
+        }).execute()
+        meeting_uri = space.get('meetingUri')
+        print(f"[Meet API] Created OPEN space: {meeting_uri}")
+        return meeting_uri
+    except Exception as e:
+        print(f"[Meet API] Failed to create space: {e}")
+        return None
+
+
 def create_interview_event(service, candidate_name, candidate_email, interviewer_name, interviewer_email, dt_str):
     if not service:
-        return None
+        return None, ""
         
     try:
         start_dt = datetime.strptime(dt_str, "%B %d, %Y at %I:%M %p")
         local_tz = pytz.timezone(TIMEZONE)
         start_dt = local_tz.localize(start_dt)
         end_dt = start_dt + timedelta(hours=1)
-        
+
+        # Step 1: Create an OPEN Google Meet space (no host admission required)
+        # We need the raw credentials for the Meet API
+        meet_link = None
+        try:
+            from google.oauth2.credentials import Credentials
+            import json, os
+            token_path = os.path.join(os.path.dirname(__file__), 'token.json')
+            creds = Credentials.from_authorized_user_file(token_path, SCOPES)
+            meet_link = create_open_meet_space(creds)
+        except Exception as me:
+            print(f"[Meet API] Could not create OPEN space, will fall back to Calendar link: {me}")
+
+        # Step 2: Build calendar event, embed the Meet link in description
+        description = (
+            f"Interview scheduled via SchedulerAI.\n"
+            f"Candidate: {candidate_name}\n"
+            f"Interviewer: {interviewer_name}"
+        )
+        if meet_link:
+            description += f"\n\nJoin Google Meet: {meet_link}"
+
         event = {
             'summary': f'Interview: {candidate_name} & {interviewer_name}',
-            'description': f'Interview scheduled via Interview Scheduler.\\nCandidate: {candidate_name}\\nInterviewer: {interviewer_name}',
-            'start': {
-                'dateTime': start_dt.isoformat(),
-                'timeZone': TIMEZONE,
-            },
-            'end': {
-                'dateTime': end_dt.isoformat(),
-                'timeZone': TIMEZONE,
-            },
-            'conferenceData': {
+            'description': description,
+            'start': {'dateTime': start_dt.isoformat(), 'timeZone': TIMEZONE},
+            'end':   {'dateTime': end_dt.isoformat(),   'timeZone': TIMEZONE},
+            # Add both participants so the event appears on their Google Calendars too
+            'attendees': [
+                {'email': candidate_email,   'displayName': candidate_name},
+                {'email': interviewer_email, 'displayName': interviewer_name},
+            ],
+            'guestsCanSeeOtherGuests': True,
+        }
+
+        # If Meet API worked, skip conferenceData (we already have the link)
+        # If Meet API failed, let Calendar generate a regular hangoutLink as fallback
+        if not meet_link:
+            event['conferenceData'] = {
                 'createRequest': {
                     'requestId': f"{candidate_name.replace(' ', '')}-{int(datetime.now().timestamp())}",
                     'conferenceSolutionKey': {'type': 'hangoutsMeet'}
                 }
             }
-        }
-        
-        # We insert into the authenticated user's primary calendar
-        created_event = service.events().insert(
-            calendarId='primary', 
-            body=event, 
-            conferenceDataVersion=1,
-            sendUpdates='none'
-        ).execute()
-        
-        hangout_link = created_event.get('hangoutLink', '')
-        print(f"Event created. Meet Link: {hangout_link}")
-        return created_event.get('id'), hangout_link
+
+        insert_kwargs = {'calendarId': 'primary', 'body': event, 'sendUpdates': 'none'}
+        if not meet_link:
+            insert_kwargs['conferenceDataVersion'] = 1
+
+        created_event = service.events().insert(**insert_kwargs).execute()
+
+        # Use OPEN Meet link if available, else fall back to Calendar's hangoutLink
+        final_link = meet_link or created_event.get('hangoutLink', '')
+        print(f"Event created. Meet Link: {final_link}")
+        return created_event.get('id'), final_link
+
     except Exception as e:
         print(f"Failed to create event: {e}")
         return None, ""
+
 
 def delete_event(service, event_id):
     if not service or not event_id:
