@@ -1,260 +1,137 @@
 import os
-import uuid
-from datetime import datetime, timedelta
-from pathlib import Path
-
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
-from dotenv import load_dotenv
+from datetime import datetime, timedelta
+import pytz
 
-load_dotenv(Path(__file__).resolve().parent / ".env")
+SCOPES = ['https://www.googleapis.com/auth/calendar.events', 'https://www.googleapis.com/auth/calendar.readonly']
 
-# ── Constants ──
-SCOPES = ["https://www.googleapis.com/auth/calendar"]
-TOKEN_FILE = Path(__file__).resolve().parent / "token.json"
-CLIENT_SECRET_FILE = Path(__file__).resolve().parent / "oauth_client.json"
-CALENDAR_ID = os.getenv("GOOGLE_CALENDAR_ID", "primary")
+# Use Indian Standard Time since the app time is India
 TIMEZONE = "Asia/Kolkata"
-INTERVIEW_DURATION_HOURS = 1
 
-
-# ── Function 1: Authenticate and return a Google Calendar service object ──
 def get_calendar_service():
-    """Uses token.json (OAuth2) and returns an authenticated Google Calendar API client."""
+    """Authenticate and return the Google Calendar service using OAuth flow."""
     creds = None
-    # The file token.json stores the user's access and refresh tokens.
-    if os.path.exists(TOKEN_FILE):
-        creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
-    
-    # If there are no (valid) credentials available, we failure here.
-    # The user should run authenticate_calendar.py first.
+    token_path = os.path.join(os.path.dirname(__file__), 'token.json')
+    client_secrets_path = os.path.join(os.path.dirname(__file__), 'oauth_client.json')
+
+    # The file token.json stores the user's access and refresh tokens
+    if os.path.exists(token_path):
+        creds = Credentials.from_authorized_user_file(token_path, SCOPES)
+        
+    # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
+            print("Refreshing Google expired token...")
             try:
                 creds.refresh(Request())
-                # Save the refreshed credentials
-                with open(TOKEN_FILE, 'w') as token:
-                    token.write(creds.to_authorized_user_json())
             except Exception as e:
-                print(f"[CalendarService] Token refresh error: {e}")
+                print("Failed to refresh token, prompting login:", e)
+                creds = None
+        
+        if not creds:
+            if not os.path.exists(client_secrets_path):
+                print(f"Warning: OAuth Client secrets file not found at {client_secrets_path}")
                 return None
-        else:
-            print("[CalendarService] No valid token.json found. Please run 'python authenticate_calendar.py' once.")
-            return None
+            print("Starting OAuth flow. Check your browser to authenticate!")
+            # This opens a browser automatically for the user to log in
+            flow = InstalledAppFlow.from_client_secrets_file(client_secrets_path, SCOPES)
+            creds = flow.run_local_server(port=0)
+            
+        # Save the credentials for the next run
+        with open(token_path, 'w') as token_file:
+            token_file.write(creds.to_json())
 
     try:
-        service = build("calendar", "v3", credentials=creds)
+        service = build('calendar', 'v3', credentials=creds)
         return service
     except Exception as e:
-        print(f"[CalendarService] Auth error: {e}")
+        print(f"Failed to build calendar service: {e}")
         return None
 
-
-# ── Helper: Convert "April 10, 2026 at 3:00 PM" → datetime object ──
-def _parse_datetime(datetime_str: str) -> datetime | None:
-    formats = [
-        "%B %d, %Y at %I:%M %p",
-        "%B %d, %Y at %I %p",
-    ]
-    for fmt in formats:
-        try:
-            return datetime.strptime(datetime_str.strip(), fmt)
-        except ValueError:
-            continue
-    print(f"[CalendarService] Could not parse datetime: '{datetime_str}'")
-    return None
-
-
-# ── Helper: Convert datetime to ISO 8601 format for Google API ──
-def _to_iso(dt: datetime) -> str:
-    return dt.strftime("%Y-%m-%dT%H:%M:%S")
-
-
-# ── Function 2: Check if interviewer has a conflict in OUR Master Calendar ──
-def check_schedule_conflict(service, interviewer_name: str, datetime_str: str) -> bool:
+def check_availability(service, interviewer_email, dt_str, duration_minutes=60):
     """
-    Searches Master Calendar for existing events in the time window
-    whose title contains the interviewer's name.
+    Check if the interviewer has any conflicting events.
     """
-    start_dt = _parse_datetime(datetime_str)
-    if not start_dt:
-        return False
-
-    end_dt = start_dt + timedelta(hours=INTERVIEW_DURATION_HOURS)
-
+    if not service:
+        # If no service, assume available
+        return True
+        
     try:
+        start_dt = datetime.strptime(dt_str, "%B %d, %Y at %I:%M %p")
+        local_tz = pytz.timezone(TIMEZONE)
+        start_dt = local_tz.localize(start_dt)
+        end_dt = start_dt + timedelta(minutes=duration_minutes)
+        
         events_result = service.events().list(
-            calendarId=CALENDAR_ID,
-            timeMin=_to_iso(start_dt) + "+05:30",
-            timeMax=_to_iso(end_dt) + "+05:30",
+            calendarId='primary',  # Checking the user's own calendar for conflicts
+            timeMin=start_dt.isoformat(),
+            timeMax=end_dt.isoformat(),
             singleEvents=True,
-            orderBy="startTime",
+            orderBy='startTime'
         ).execute()
-
-        events = events_result.get("items", [])
-        for event in events:
-            summary = event.get("summary", "")
-            if interviewer_name.strip().lower() in summary.lower():
-                print(f"[CalendarService] Conflict found for {interviewer_name}: '{summary}'")
-                return True
-
-        return False
-
+        
+        events = events_result.get('items', [])
+        return len(events) == 0
     except Exception as e:
-        print(f"[CalendarService] Conflict check error: {e}")
-        return False
+        print(f"Calendar auth/read check failed: {e}. Assuming available.")
+        return True
 
-
-# ── Function 3: Check interviewer's personal calendar via Freebusy API ──
-def check_personal_busy(service, interviewer_email: str, datetime_str: str) -> bool:
-    """
-    Uses Google's Freebusy API to check if the interviewer is busy.
-    """
-    start_dt = _parse_datetime(datetime_str)
-    if not start_dt:
-        return False
-
-    end_dt = start_dt + timedelta(hours=INTERVIEW_DURATION_HOURS)
-
-    try:
-        body = {
-            "timeMin": _to_iso(start_dt) + "+05:30",
-            "timeMax": _to_iso(end_dt) + "+05:30",
-            "timeZone": TIMEZONE,
-            "items": [{"id": interviewer_email}],
-        }
-
-        result = service.freebusy().query(body=body).execute()
-        busy_slots = result.get("calendars", {}).get(interviewer_email, {}).get("busy", [])
-
-        if busy_slots:
-            print(f"[CalendarService] {interviewer_email} is personally busy at {datetime_str}")
-            return True
-
-        return False
-
-    except Exception as e:
-        print(f"[CalendarService] Freebusy check error: {e}")
-        return False
-
-
-# ── Function 4: Create the interview event silently and get Meet link ──
-def create_interview_event(
-    service,
-    candidate_name: str,
-    candidate_email: str,
-    interviewer_name: str,
-    interviewer_email: str,
-    datetime_str: str,
-) -> str | None:
-    """
-    Creates a Google Calendar event.
-    """
-    start_dt = _parse_datetime(datetime_str)
-    if not start_dt:
+def create_interview_event(service, candidate_name, candidate_email, interviewer_name, interviewer_email, dt_str):
+    if not service:
         return None
-
-    end_dt = start_dt + timedelta(hours=INTERVIEW_DURATION_HOURS)
-
-    event_body = {
-        "summary": f"Interview: {candidate_name} & {interviewer_name}",
-        "description": (
-            f"Automated interview scheduled via SchedulerAI.\n\n"
-            f"Candidate: {candidate_name} ({candidate_email})\n"
-            f"Interviewer: {interviewer_name} ({interviewer_email})"
-        ),
-        "start": {
-            "dateTime": _to_iso(start_dt),
-            "timeZone": TIMEZONE,
-        },
-        "end": {
-            "dateTime": _to_iso(end_dt),
-            "timeZone": TIMEZONE,
-        },
-        "attendees": [
-            {"email": candidate_email},
-            {"email": interviewer_email},
-        ],
-        "conferenceData": {
-            "createRequest": {
-                "requestId": str(uuid.uuid4()),
-                "conferenceSolutionKey": {"type": "hangoutsMeet"},
+        
+    try:
+        start_dt = datetime.strptime(dt_str, "%B %d, %Y at %I:%M %p")
+        local_tz = pytz.timezone(TIMEZONE)
+        start_dt = local_tz.localize(start_dt)
+        end_dt = start_dt + timedelta(hours=1)
+        
+        event = {
+            'summary': f'Interview: {candidate_name} & {interviewer_name}',
+            'description': f'Interview scheduled via Interview Scheduler.\\nCandidate: {candidate_name}\\nInterviewer: {interviewer_name}',
+            'start': {
+                'dateTime': start_dt.isoformat(),
+                'timeZone': TIMEZONE,
+            },
+            'end': {
+                'dateTime': end_dt.isoformat(),
+                'timeZone': TIMEZONE,
+            },
+            'conferenceData': {
+                'createRequest': {
+                    'requestId': f"{candidate_name.replace(' ', '')}-{int(datetime.now().timestamp())}",
+                    'conferenceSolutionKey': {'type': 'hangoutsMeet'}
+                }
             }
-        },
-    }
-
-    try:
+        }
+        
+        # We insert into the authenticated user's primary calendar
         created_event = service.events().insert(
-            calendarId=CALENDAR_ID,
-            body=event_body,
+            calendarId='primary', 
+            body=event, 
             conferenceDataVersion=1,
-            sendUpdates="none",
+            sendUpdates='none'
         ).execute()
-
-        conference_data = created_event.get("conferenceData", {})
-        entry_points = conference_data.get("entryPoints", [])
-        meet_link = next(
-            (ep.get("uri") for ep in entry_points if ep.get("entryPointType") == "video"),
-            None,
-        )
-
-        print(f"[CalendarService] Event created. Meet link: {meet_link}")
-        return meet_link
-
+        
+        hangout_link = created_event.get('hangoutLink', '')
+        print(f"Event created. Meet Link: {hangout_link}")
+        return created_event.get('id'), hangout_link
     except Exception as e:
-        print(f"[CalendarService] Event creation error: {e}")
-        return None
+        print(f"Failed to create event: {e}")
+        return None, ""
 
-
-# ── Function 5: Delete an interview event ──
-def delete_interview_event(service, candidate_name: str, interviewer_name: str) -> bool:
-    search_title = f"Interview: {candidate_name} & {interviewer_name}".lower()
-
+def delete_event(service, event_id):
+    if not service or not event_id:
+        return
     try:
-        events_result = service.events().list(
-            calendarId=CALENDAR_ID,
-            q=f"Interview: {candidate_name}",
-            singleEvents=True,
-            orderBy="startTime",
+        service.events().delete(
+            calendarId='primary',
+            eventId=event_id,
+            sendUpdates='all'
         ).execute()
-
-        events = events_result.get("items", [])
-        for event in events:
-            summary = event.get("summary", "").lower()
-            if search_title in summary or (
-                candidate_name.lower() in summary and interviewer_name.lower() in summary
-            ):
-                service.events().delete(
-                    calendarId=CALENDAR_ID,
-                    eventId=event["id"],
-                    sendUpdates="none",
-                ).execute()
-                print(f"[CalendarService] Deleted event: '{event.get('summary')}'")
-                return True
-        return False
-
+        print(f"Event {event_id} deleted.")
     except Exception as e:
-        print(f"[CalendarService] Delete error: {e}")
-        return False
-
-
-# ── Function 6: Reschedule ──
-def reschedule_interview_event(
-    service,
-    candidate_name: str,
-    candidate_email: str,
-    interviewer_name: str,
-    interviewer_email: str,
-    new_datetime_str: str,
-) -> str | None:
-    delete_interview_event(service, candidate_name, interviewer_name)
-    return create_interview_event(
-        service,
-        candidate_name,
-        candidate_email,
-        interviewer_name,
-        interviewer_email,
-        new_datetime_str,
-    )
+        print(f"Failed to delete event: {e}")

@@ -1,5 +1,40 @@
+# ======================
+# Node / Frontend (Vite)
+# ======================
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# ======================
+# Python
+# ======================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Backend specific
+scheduler-backend/__pycache__/
+
+# ======================
+# Environment Variables
+# ======================
+.env
+.env.*
+scheduler-backend/.env
+
+# ======================
+# Google OAuth / Secrets
+# ======================
+scheduler-backend/oauth_client.json
+scheduler-backend/token.json
+scheduler-backend/credentials.json
+
+# ======================
 # Logs
-logs
+# ======================
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -7,21 +42,31 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# ======================
+# Data Files (optional)
+# ======================
+scheduler-backend/data.json
 
-scheduler-backend/.env
-scheduler-backend/__pycache__
-
-# Editor directories and files
+# ======================
+# Editor / IDE
+# ======================
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
+
+# ======================
+# OS Files
+# ======================
 .DS_Store
+Thumbs.db
+
+# ======================
+# Misc
+# ======================
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+*.tmp
+*.bak

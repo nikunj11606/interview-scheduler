@@ -26,7 +26,10 @@
       "name": "Kanchi Bhatia",
       "role": "ML Engineer",
       "email": "kanchi2024.b@gmail.com",
-      "status": "pending"
+      "status": "scheduled",
+      "interviewTime": "April 16, 2026 at 2:00 PM",
+      "interviewer": "Demis Hassabis",
+      "eventId": "996rt1lpk0j3nqfbck3siacglg"
     },
     {
       "id": 5,
@@ -147,7 +150,9 @@
       "name": "Demis Hassabis",
       "department": "AI Research",
       "email": "kanchibhatia4@gmail.com",
-      "available": true
+      "available": false,
+      "candidate": "Kanchi Bhatia",
+      "time": "April 16, 2026 at 2:00 PM"
     },
     {
       "id": 4,

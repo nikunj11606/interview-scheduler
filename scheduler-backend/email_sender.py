@@ -12,8 +12,8 @@ def send_confirmation(
     interviewer_name: str,
     interviewer_email: str,
     interview_datetime: str,
-    action: str = "SCHEDULED",
-    meet_link: str = None         # Optional Google Meet link
+    action: str = "SCHEDULED",  # 'SCHEDULED' or 'CANCELED'
+    meet_link: str = ""
 ) -> bool:
     try:
         EMAIL_USER = os.getenv("EMAIL_USER")
@@ -54,6 +54,8 @@ def send_confirmation(
             msg["From"] = f"ScheduleAI <{EMAIL_USER}>"
             msg["To"] = to_email
 
+            meet_text = f"- Google Meet: {meet_link}\n" if meet_link and action != "CANCELED" else ""
+            
             # 1. Plain text fallback
             text_body = f"""Hi {to_name},
 
@@ -63,10 +65,20 @@ Details:
 - Candidate: {candidate_name}
 - Interviewer: {interviewer_name}
 - Date & Time: {interview_datetime}
-
+{meet_text}
 Regards,
 ScheduleAI System
 """
+
+            meet_html = ""
+            if meet_link and action != "CANCELED":
+                meet_html = f"""
+                      <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 15px; border-top: 1px solid #f1f5f9; padding-top: 15px;">
+                        <tr>
+                            <td class="label">Meeting Link</td>
+                            <td class="value"><a href="{meet_link}" style="color: #4f46e5; text-decoration: none; font-weight: 600;">Join Google Meet</a></td>
+                        </tr>
+                      </table>"""
 
             # 2. Premium HTML Template
             html_body = f"""
@@ -114,7 +126,7 @@ ScheduleAI System
                             <td class="label">Interviewer</td>
                             <td class="value">{interviewer_name}</td>
                         </tr>
-                      </table>
+                      </table>{meet_html}
                     </div>
                     
                     <p>You are receiving this email as the <strong>{role_title}</strong> for this session.</p>
