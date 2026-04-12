@@ -12,9 +12,7 @@
       "name": "Nikunj Sankaliya",
       "role": "Backend Developer",
       "email": "nikunj11606@gmail.com",
-      "status": "scheduled",
-      "interviewTime": "April 15, 2026 at 7:00 PM",
-      "interviewer": "Akash Singh"
+      "status": "pending"
     },
     {
       "id": 3,
@@ -161,9 +159,7 @@
       "name": "Akash Singh",
       "department": "Engineering",
       "email": "nikunjsankaliya716@gmail.com",
-      "available": false,
-      "candidate": "Nikunj Sankaliya",
-      "time": "April 15, 2026 at 7:00 PM"
+      "available": true
     },
     {
       "id": 5,
