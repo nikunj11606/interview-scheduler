@@ -1,4 +1,4 @@
-# AI Interview Scheduler & Analytics System
+# AI Interview Scheduler
 
 A production-ready full-stack application that uses AI (Groq/Gemini) to manage interview scheduling, conflict detection, and automated meeting invitations via Google Calendar and Email.
 
