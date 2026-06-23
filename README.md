@@ -1,6 +1,6 @@
 # AI Interview Scheduler
 
-A production-ready full-stack application that uses AI (Groq/Gemini) to manage interview scheduling, conflict detection, and automated meeting invitations via Google Calendar and Email.
+An AI-powered interview scheduling web application that enables users to schedule, reschedule, and cancel interviews through a natural language chat interface. The system automatically assigns interviewers, creates Google Calendar events with Google Meet links, and sends email notifications to both candidates and interviewers.
 
 ## 🚀 Getting Started
 
